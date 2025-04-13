@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Crucial viewport settings for mobile -->
+    <!-- Crucial viewport settings for mobile WebView scaling -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Survesh's 3D Snake Game</title>
     <style>
@@ -16,36 +16,36 @@
             background-color: #000; /* Black background for body */
             color: #eee;
             font-family: 'Arial', sans-serif;
-            /* Display flex to center container (though it now fills screen) */
-            display: flex;
+            display: flex; /* Use flex to help center container */
             justify-content: center;
             align-items: center;
         }
 
-        /* Make game container fill the entire viewport */
+        /* Make game container try to fill parent (body) */
         #game-container {
-            position: relative;
-            width: 100%; /* Fill width */
-            height: 100%; /* Fill height */
-            max-width: none; /* Remove max-width restriction */
-            aspect-ratio: 16 / 9; /* Maintain aspect ratio - may add black bars */
+            position: relative; /* Changed from absolute */
+            width: 100%; /* Use 100% of parent */
+            height: 100%; /* Use 100% of parent */
+            max-width: 100vw; /* Ensure it doesn't exceed viewport width */
+            max-height: 100vh; /* Ensure it doesn't exceed viewport height */
+            aspect-ratio: 16 / 9; /* Maintain aspect ratio - WILL ADD BARS */
             background-color: #000;
             border: none; /* Remove border */
-            /* Ensure container respects viewport dimensions even with aspect ratio */
-            /* Use max-width/max-height to constrain by viewport */
-            max-width: 100vw;
-            max-height: 100vh;
-            /* Center the container if aspect ratio causes letter/pillar-boxing */
-            margin: auto;
+            margin: auto; /* Center horizontally/vertically if bars appear */
+            display: flex; /* Needed for canvas centering maybe? */
+            justify-content: center;
+            align-items: center;
         }
 
         canvas {
             display: block;
+            /* Canvas should fill the container */
             width: 100% !important;
             height: 100% !important;
+            object-fit: contain; /* Ensure canvas fits within aspect ratio container */
         }
 
-        /* UI Layer remains absolutely positioned within the container */
+        /* UI Layer */
         #ui-layer {
             position: absolute;
             top: 0;
@@ -59,79 +59,68 @@
             align-items: center;
         }
 
-        /* --- UI Elements Positioning --- */
-        /* Slightly smaller padding/margins for fullscreen */
+        /* --- UI Elements Positioning (Adjusted for potential bars) --- */
         #game-stats {
             position: absolute;
-            top: 5px; /* Adjust as needed */
-            left: 5px; /* Adjust as needed */
+            top: 1vmin; /* Use viewport units for better scaling */
+            left: 1vmin;
             background: rgba(0,0,0,0.6);
-            padding: 6px 12px;
-            border-radius: 4px;
+            padding: 1vmin 1.5vmin;
+            border-radius: 0.5vmin;
             text-shadow: 1px 1px 2px black;
             z-index: 5;
+            font-size: 1.8vmin; /* Scalable font size */
         }
-        #score { font-size: 1.4em; margin-bottom: 3px; } /* Adjust size */
-        #level { font-size: 1.0em; color: #aaa; } /* Adjust size */
+        #score { margin-bottom: 0.5vmin; font-size: 1.2em; } /* Relative to parent */
+        #level { font-size: 0.8em; color: #aaa;}
 
         #game-title {
             position: absolute;
-            top: 5px; /* Adjust as needed */
-            right: 5px; /* Adjust as needed */
-            font-size: 1.3em; /* Adjust size */
+            top: 1vmin;
+            right: 1vmin;
+            font-size: 2vmin; /* Scalable font size */
             font-weight: bold;
             color: #d0d0d0;
             background: rgba(0,0,0,0.6);
-            padding: 6px 12px;
-            border-radius: 4px;
+            padding: 1vmin 1.5vmin;
+            border-radius: 0.5vmin;
             text-shadow: 1px 1px 2px black;
             z-index: 5;
         }
 
         #game-over {
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            text-align: center;
-            pointer-events: all;
-            z-index: 10;
+            display: none; flex-direction: column; justify-content: center;
+            align-items: center; position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            text-align: center; pointer-events: all; z-index: 10;
+            font-size: 1.8vmin; /* Scale game over text too */
         }
         #game-over h2 { margin: 0 0 15px 0; font-size: 2.5em; color: #ff4d4d; }
         #game-over p { font-size: 1.2em; margin-bottom: 20px; }
-        #restart-button { padding: 12px 25px; font-size: 1.1em; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 5px; transition: background-color 0.2s; }
+        #restart-button { padding: 1.5vmin 3vmin; font-size: 1.1em; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 0.6vmin; transition: background-color 0.2s; }
         #restart-button:hover { background-color: #45a049; }
 
-        /* Instructions hidden by default on small/touch screens */
         #instructions {
             position: absolute;
-            bottom: 5px; /* Adjust */
-            left: 5px; /* Adjust */
-            font-size: 0.8em; /* Adjust */
+            bottom: 1vmin;
+            left: 1vmin;
+            font-size: 1.5vmin; /* Scalable */
             background: rgba(0,0,0,0.6);
-            padding: 5px 8px;
-            border-radius: 4px;
-            max-width: 200px; /* Adjust */
+            padding: 0.8vmin 1.2vmin;
+            border-radius: 0.5vmin;
+            max-width: 30vmin; /* Scalable */
             z-index: 5;
-            display: none; /* Hide by default, show on larger screens */
+             display: none; /* Hidden by default, shown via media query */
         }
 
-        /* Media query to show instructions on larger screens */
-        @media (min-width: 600px) and (min-height: 400px) {
+        /* Show instructions only if screen is reasonably large */
+         @media (min-width: 500px) and (min-height: 300px) {
              #instructions { display: block; }
         }
-
-         /* Remove specific fullscreen button styles */
-        /* Remove fullscreen container styles - now default */
 
     </style>
 </head>
 <body>
-    <!-- Container now fills the viewport via CSS -->
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="ui-layer">
@@ -150,69 +139,23 @@
                 <button id="restart-button">Restart</button>
             </div>
         </div>
-         <!-- Fullscreen button REMOVED -->
+         <!-- Fullscreen button is REMOVED -->
     </div>
 
     <!-- Three.js Core ONLY -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        console.log("Script starting - Auto Full View / Landscape Attempt");
+        console.log("Script starting - WebView Optimized Layout");
 
         // --- Configuration (remains the same) ---
-        const BOX_SIZE = 60;
-        const GAME_PLANE_Y = 0; const GRID_UNIT = 1;
-        const TUBE_RADIUS = GRID_UNIT * 0.40;
-        const SNAKE_HEAD_RADIUS = GRID_UNIT * 0.55;
-        const FOOD_RADIUS = GRID_UNIT * 0.6;
-        const INITIAL_SNAKE_LENGTH = 5; const INITIAL_SPEED_MS = 190; const SPEED_INCREMENT_FACTOR = 0.97; const MIN_SPEED_MS = 60;
-        const CAMERA_FOLLOW_DISTANCE = 19; const CAMERA_FOLLOW_HEIGHT = 30; const CAMERA_LERP_FACTOR = 0.06;
-        const TUBE_RADIAL_SEGMENTS = 6; const TUBE_SEGMENT_MULTIPLIER = 4;
-        const TALL_GRASS_COUNT = 250;
-        const TALL_GRASS_HEIGHT = GRID_UNIT * 1.5; const TALL_GRASS_WIDTH = GRID_UNIT * 0.1;
-        const SHORT_GRASS_COUNT = 10000;
-        const SHORT_GRASS_HEIGHT = GRID_UNIT * 0.4; const SHORT_GRASS_WIDTH = GRID_UNIT * 0.08;
-        const STONE_MIN_RADIUS = GRID_UNIT * 0.6; const STONE_MAX_RADIUS = GRID_UNIT * 1.4;
-        const TREE_TRUNK_HEIGHT = GRID_UNIT * 2.8; const TREE_TRUNK_RADIUS = GRID_UNIT * 0.35;
-        const TREE_LEAVES_RADIUS = GRID_UNIT * 1.5;
-        const LEVEL_TARGETS = [5, 10, 15, 20, 25];
-        const CUMULATIVE_LEVEL_TARGETS = LEVEL_TARGETS.reduce((acc, val, i) => { acc.push((i === 0 ? 0 : acc[i-1]) + val); return acc; }, []);
-        const MAX_LEVEL = LEVEL_TARGETS.length;
-        const LEVEL_OBSTACLES = [ { trees: 1, stones: 1 }, { trees: 3, stones: 3 }, { trees: 5, stones: 5 }, { trees: 7, stones: 7 }, { trees: 9, stones: 9 } ];
-        const SNAKE_BODY_COLOR = 0x111111; const SNAKE_HEAD_COLOR = 0x111111; const FOOD_COLOR = 0xff0000;
-        const SNAKE_BODY_EMISSIVE = 0x000000; const SNAKE_HEAD_EMISSIVE = 0x000000; const FOOD_EMISSIVE = 0xcc0000;
-        const SNAKE_BODY_EMISSIVE_INTENSITY = 0; const SNAKE_HEAD_EMISSIVE_INTENSITY = 0; const FOOD_EMissive_INTENSITY = 0.8;
-        const SNAKE_METALNESS = 0.8; const SNAKE_ROUGHNESS = 0.2; const FOOD_METALNESS = 0.1; const FOOD_ROUGHNESS = 0.3;
-
+        const BOX_SIZE = 60; const GAME_PLANE_Y = 0; const GRID_UNIT = 1; const TUBE_RADIUS = GRID_UNIT * 0.40; const SNAKE_HEAD_RADIUS = GRID_UNIT * 0.55; const FOOD_RADIUS = GRID_UNIT * 0.6; const INITIAL_SNAKE_LENGTH = 5; const INITIAL_SPEED_MS = 190; const SPEED_INCREMENT_FACTOR = 0.97; const MIN_SPEED_MS = 60; const CAMERA_FOLLOW_DISTANCE = 19; const CAMERA_FOLLOW_HEIGHT = 30; const CAMERA_LERP_FACTOR = 0.06; const TUBE_RADIAL_SEGMENTS = 6; const TUBE_SEGMENT_MULTIPLIER = 4; const TALL_GRASS_COUNT = 250; const TALL_GRASS_HEIGHT = GRID_UNIT * 1.5; const TALL_GRASS_WIDTH = GRID_UNIT * 0.1; const SHORT_GRASS_COUNT = 10000; const SHORT_GRASS_HEIGHT = GRID_UNIT * 0.4; const SHORT_GRASS_WIDTH = GRID_UNIT * 0.08; const STONE_MIN_RADIUS = GRID_UNIT * 0.6; const STONE_MAX_RADIUS = GRID_UNIT * 1.4; const TREE_TRUNK_HEIGHT = GRID_UNIT * 2.8; const TREE_TRUNK_RADIUS = GRID_UNIT * 0.35; const TREE_LEAVES_RADIUS = GRID_UNIT * 1.5; const LEVEL_TARGETS = [5, 10, 15, 20, 25]; const CUMULATIVE_LEVEL_TARGETS = LEVEL_TARGETS.reduce((acc, val, i) => { acc.push((i === 0 ? 0 : acc[i-1]) + val); return acc; }, []); const MAX_LEVEL = LEVEL_TARGETS.length; const LEVEL_OBSTACLES = [ { trees: 1, stones: 1 }, { trees: 3, stones: 3 }, { trees: 5, stones: 5 }, { trees: 7, stones: 7 }, { trees: 9, stones: 9 } ]; const SNAKE_BODY_COLOR = 0x111111; const SNAKE_HEAD_COLOR = 0x111111; const FOOD_COLOR = 0xff0000; const SNAKE_BODY_EMISSIVE = 0x000000; const SNAKE_HEAD_EMISSIVE = 0x000000; const FOOD_EMISSIVE = 0xcc0000; const SNAKE_BODY_EMISSIVE_INTENSITY = 0; const SNAKE_HEAD_EMISSIVE_INTENSITY = 0; const FOOD_EMissive_INTENSITY = 0.8; const SNAKE_METALNESS = 0.8; const SNAKE_ROUGHNESS = 0.2; const FOOD_METALNESS = 0.1; const FOOD_ROUGHNESS = 0.3;
         // --- Game State (remains the same) ---
-        let scene, camera, renderer, clock;
-        let snake = []; let previousSnake = [];
-        let snakeTubeMesh = null; let snakeHeadMesh = null; let food = null;
-        let direction = new THREE.Vector3(GRID_UNIT, 0, 0); let nextDirection = new THREE.Vector3(GRID_UNIT, 0, 0);
-        let score = 0; let currentLevel = 1; let isGameOver = false; let gameWon = false;
-        let currentSpeedMs = INITIAL_SPEED_MS;
-        let gameLoopTimeout; let lastTickTime = 0;
-        const desiredCameraPosition = new THREE.Vector3(); const snakeHeadPosition = new THREE.Vector3();
-        let snakeBodyMaterial, snakeHeadMaterial, foodMaterial;
-        let tallGrassMaterial, shortGrassMaterial, stoneMaterial, treeTrunkMaterial, treeLeavesMaterial;
-        let instancedShortGrass = null; const environmentObjects = [];
-        let obstacles = [];
-
+        let scene, camera, renderer, clock; let snake = []; let previousSnake = []; let snakeTubeMesh = null; let snakeHeadMesh = null; let food = null; let direction = new THREE.Vector3(GRID_UNIT, 0, 0); let nextDirection = new THREE.Vector3(GRID_UNIT, 0, 0); let score = 0; let currentLevel = 1; let isGameOver = false; let gameWon = false; let currentSpeedMs = INITIAL_SPEED_MS; let gameLoopTimeout; let lastTickTime = 0; const desiredCameraPosition = new THREE.Vector3(); const snakeHeadPosition = new THREE.Vector3(); let snakeBodyMaterial, snakeHeadMaterial, foodMaterial; let tallGrassMaterial, shortGrassMaterial, stoneMaterial, treeTrunkMaterial, treeLeavesMaterial; let instancedShortGrass = null; const environmentObjects = []; let obstacles = [];
         // --- Constants (remains the same) ---
-        const WORLD_UP = new THREE.Vector3(0, 1, 0); const VEC_ZERO = new THREE.Vector3(0, 0, 0);
-        const HALF_BOX = BOX_SIZE / 2;
-        const SELF_COLLISION_PADDING_FACTOR = 0.7;
-        const OBSTACLE_COLLISION_PADDING_FACTOR = 0.85;
-
+        const WORLD_UP = new THREE.Vector3(0, 1, 0); const VEC_ZERO = new THREE.Vector3(0, 0, 0); const HALF_BOX = BOX_SIZE / 2; const SELF_COLLISION_PADDING_FACTOR = 0.7; const OBSTACLE_COLLISION_PADDING_FACTOR = 0.85;
         // --- DOM Elements ---
-        const gameContainer = document.getElementById('game-container'); const canvas = document.getElementById('gameCanvas');
-        const scoreElement = document.getElementById('score'); const levelElement = document.getElementById('level');
-        const gameOverElement = document.getElementById('game-over');
-        const gameOverTitle = document.getElementById('game-over-title');
-        const gameOverMessage = document.getElementById('game-over-message');
-        const finalScoreElement = document.getElementById('final-score'); const restartButton = document.getElementById('restart-button');
-        // fullscreenButton element REMOVED
-
+        const gameContainer = document.getElementById('game-container'); const canvas = document.getElementById('gameCanvas'); const scoreElement = document.getElementById('score'); const levelElement = document.getElementById('level'); const gameOverElement = document.getElementById('game-over'); const gameOverTitle = document.getElementById('game-over-title'); const gameOverMessage = document.getElementById('game-over-message'); const finalScoreElement = document.getElementById('final-score'); const restartButton = document.getElementById('restart-button');
         // --- Touch Input State (remains the same) ---
         let touchStartX = 0; let touchStartY = 0; const swipeThreshold = 30;
 
@@ -221,10 +164,10 @@
             console.log("init() started");
             clock = new THREE.Clock();
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x101518); // Match body background if needed
+            scene.background = new THREE.Color(0x000000); // Match container/body background
             scene.fog = new THREE.Fog(scene.background, BOX_SIZE * 0.6, BOX_SIZE * 1.8);
 
-            // Renderer and Camera setup needs to use the actual container size
+            // Use container dimensions for initial setup
             const containerWidth = gameContainer.clientWidth;
             const containerHeight = gameContainer.clientHeight;
             const aspect = containerWidth / containerHeight;
@@ -232,10 +175,9 @@
 
             camera = new THREE.PerspectiveCamera(55, aspect, 0.1, BOX_SIZE * 5);
 
-            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-            // Set initial size based on container
-            renderer.setSize(containerWidth, containerHeight);
-            const renderPixelRatio = Math.min(window.devicePixelRatio * 1.0, 2);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(containerWidth, containerHeight); // Set initial size
+            const renderPixelRatio = Math.min(window.devicePixelRatio * 1.0, 2); // Cap pixel ratio
             renderer.setPixelRatio(renderPixelRatio);
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.shadowMap.enabled = true;
@@ -243,7 +185,7 @@
 
             defineMaterials();
             setupLighting();
-            resetGame(); // Environment created inside resetGame
+            resetGame(); // Creates environment
 
             isGameOver = false;
             gameWon = false;
@@ -251,49 +193,24 @@
             gameLoop();
             scheduleNextLogicTick();
 
-            // --- Attempt Landscape Lock (Best Effort) ---
-            try {
-                if (screen.orientation && typeof screen.orientation.lock === 'function') {
-                    screen.orientation.lock('landscape').then(() => {
-                        console.log('Screen orientation locked to landscape (if supported).');
-                        // Trigger resize after potential orientation change
-                        setTimeout(onWindowResize, 300);
-                    }).catch((error) => {
-                        console.warn('Screen orientation lock failed:', error);
-                    });
-                } else if (screen.lockOrientation) { // Older API attempts
-                     screen.lockOrientation('landscape');
-                } else if (screen.mozLockOrientation) {
-                     screen.mozLockOrientation('landscape');
-                } else if (screen.msLockOrientation) {
-                     screen.msLockOrientation('landscape');
-                } else {
-                    console.log('Screen Orientation API not fully supported.');
-                }
-            } catch (e) {
-                console.error('Error attempting to lock orientation:', e);
-            }
+            // --- REMOVED Landscape Lock Attempt ---
 
             // --- Event Listeners ---
             window.addEventListener('keydown', handleKeyDown);
-            window.addEventListener('resize', onWindowResize); // Still important!
+            window.addEventListener('resize', onWindowResize); // Crucial listener
             restartButton.addEventListener('click', restartGame);
-            // Fullscreen button listener REMOVED
             canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
             canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
             canvas.addEventListener('touchend', handleTouchEnd);
 
-            // Initial resize call to ensure layout is correct after potential scrollbars disappear etc.
-             setTimeout(onWindowResize, 100); // Delay slightly
+            // Initial resize call after setup
+             setTimeout(onWindowResize, 150); // Delay slightly more
 
             console.log("init() finished");
         }
 
-        // --- Functions (defineMaterials, setupLighting, createEnvironment, placeObjectSafely, disposeEnvironment, resetGame, advanceLevel, updateSnakeMesh, disposeSnakeMeshes, generateFood, checkObstacleCollision, updateGameLogic, scheduleNextLogicTick, gameLoop, updateCamera, triggerGameOver, triggerGameWin, restartGame, calculateRelativeVectors2D, handleRelativeTurn, handleKeyDown, handleTouchStart, handleTouchMove, handleTouchEnd) ---
-        // These functions remain largely the same as your previous version.
-        // Make sure they don't reference the fullscreenButton.
-        // ... (Paste the JS functions from your previous working version here, ensuring no fullscreen button logic remains) ...
-        // --- [PASTE ALL JS FUNCTIONS HERE, VERIFY NO FULLSCREENBUTTON REFERENCES] ---
+        // --- Functions (defineMaterials, setupLighting, createEnvironment, etc.) ---
+        // --- [PASTE THE REST OF YOUR JS FUNCTIONS HERE - VERIFIED NO FULLSCREEN LOGIC] ---
         function defineMaterials() { console.log("Defining materials..."); snakeBodyMaterial = new THREE.MeshStandardMaterial({ color: SNAKE_BODY_COLOR, metalness: SNAKE_METALNESS, roughness: SNAKE_ROUGHNESS, emissive: SNAKE_BODY_EMISSIVE, emissiveIntensity: SNAKE_BODY_EMISSIVE_INTENSITY }); snakeHeadMaterial = new THREE.MeshStandardMaterial({ color: SNAKE_HEAD_COLOR, metalness: SNAKE_METALNESS, roughness: SNAKE_ROUGHNESS, emissive: SNAKE_HEAD_EMISSIVE, emissiveIntensity: SNAKE_HEAD_EMISSIVE_INTENSITY }); foodMaterial = new THREE.MeshStandardMaterial({ color: FOOD_COLOR, metalness: FOOD_METALNESS, roughness: FOOD_ROUGHNESS, emissive: FOOD_EMISSIVE, emissiveIntensity: FOOD_EMissive_INTENSITY }); tallGrassMaterial = new THREE.MeshLambertMaterial({ color: 0x2E7D32 }); shortGrassMaterial = new THREE.MeshLambertMaterial({ color: 0x4CAF50, side: THREE.DoubleSide }); stoneMaterial = new THREE.MeshStandardMaterial({ color: 0x607D8B, roughness: 0.9, metalness: 0.1 }); treeTrunkMaterial = new THREE.MeshLambertMaterial({ color: 0x5D4037 }); treeLeavesMaterial = new THREE.MeshLambertMaterial({ color: 0x1B5E20 }); }
         function setupLighting() { console.log("Setting up lighting..."); scene.add(new THREE.AmbientLight(0x404040, 0.8)); scene.add(new THREE.HemisphereLight(0x607080, 0x303040, 0.6)); const keyLight1 = new THREE.DirectionalLight(0xffffff, 1.2); keyLight1.position.set(BOX_SIZE * 0.5, BOX_SIZE * 0.6, BOX_SIZE * 0.7); keyLight1.castShadow = true; keyLight1.shadow.mapSize.width = 2048; keyLight1.shadow.mapSize.height = 2048; keyLight1.shadow.camera.near = 1; keyLight1.shadow.camera.far = BOX_SIZE * 3; const shadowCamSize = BOX_SIZE * 1.0; keyLight1.shadow.camera.left = -shadowCamSize; keyLight1.shadow.camera.right = shadowCamSize; keyLight1.shadow.camera.top = shadowCamSize; keyLight1.shadow.camera.bottom = -shadowCamSize; keyLight1.shadow.bias = -0.003; keyLight1.target.position.set(0, GAME_PLANE_Y - BOX_SIZE * 0.1, 0); scene.add(keyLight1); scene.add(keyLight1.target); const keyLight2 = new THREE.DirectionalLight(0xaaaaff, 0.6); keyLight2.position.set(-BOX_SIZE * 0.4, BOX_SIZE * 0.7, -BOX_SIZE * 0.6); keyLight2.castShadow = false; keyLight2.target.position.set(0, GAME_PLANE_Y, 0); scene.add(keyLight2); scene.add(keyLight2.target); }
         function createEnvironment(level) { console.log(`Creating environment for Level ${level}...`); disposeEnvironment(); const planeGeometry = new THREE.PlaneGeometry(BOX_SIZE, BOX_SIZE); const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x384838, side: THREE.DoubleSide, metalness: 0.05, roughness: 0.95 }); const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial); groundPlane.rotation.x = -Math.PI / 2; groundPlane.position.y = GAME_PLANE_Y - 0.05; groundPlane.receiveShadow = true; scene.add(groundPlane); environmentObjects.push(groundPlane); const levelIndex = Math.min(level - 1, LEVEL_OBSTACLES.length - 1); const { trees: treeCount, stones: stoneCount } = LEVEL_OBSTACLES[levelIndex]; console.log(` - Trees: ${treeCount}, Stones: ${stoneCount}`); const tallGrassGeometry = new THREE.BoxGeometry(TALL_GRASS_WIDTH, TALL_GRASS_HEIGHT, TALL_GRASS_WIDTH); for (let i = 0; i < TALL_GRASS_COUNT; i++) { const grass = new THREE.Mesh(tallGrassGeometry, tallGrassMaterial); placeObjectSafely(grass, 0, TALL_GRASS_HEIGHT / 2); grass.rotation.y = Math.random() * Math.PI * 2; grass.castShadow = true; scene.add(grass); environmentObjects.push(grass); } tallGrassGeometry.dispose(); const shortGrassGeometry = new THREE.BoxGeometry(SHORT_GRASS_WIDTH, SHORT_GRASS_HEIGHT, SHORT_GRASS_WIDTH); instancedShortGrass = new THREE.InstancedMesh(shortGrassGeometry, shortGrassMaterial, SHORT_GRASS_COUNT); instancedShortGrass.castShadow = false; instancedShortGrass.receiveShadow = true; const _matrix = new THREE.Matrix4(); const _position = new THREE.Vector3(); const _quat = new THREE.Quaternion(); const _scale = new THREE.Vector3(1, 1, 1); for (let i = 0; i < SHORT_GRASS_COUNT; i++) { _position.x = Math.random() * BOX_SIZE - HALF_BOX; _position.z = Math.random() * BOX_SIZE - HALF_BOX; _position.y = GAME_PLANE_Y + SHORT_GRASS_HEIGHT / 2 - 0.04; _quat.setFromAxisAngle(WORLD_UP, Math.random() * Math.PI * 2); const tiltX = (Math.random() - 0.5) * 0.3; const tiltZ = (Math.random() - 0.5) * 0.3; const tiltQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(tiltX, 0, tiltZ)); _quat.multiply(tiltQuat); _matrix.compose(_position, _quat, _scale); instancedShortGrass.setMatrixAt(i, _matrix); } instancedShortGrass.instanceMatrix.needsUpdate = true; scene.add(instancedShortGrass); console.log(`Added ${TALL_GRASS_COUNT} tall grass, ${SHORT_GRASS_COUNT} short grass instances.`); const occupiedPositions = []; const stoneGeometry = new THREE.IcosahedronGeometry(1, 0); let stonesAdded = 0; for (let i = 0; i < stoneCount; i++) { const radius = THREE.MathUtils.randFloat(STONE_MIN_RADIUS, STONE_MAX_RADIUS); const stone = new THREE.Mesh(stoneGeometry.clone(), stoneMaterial); stone.scale.set(radius, radius * THREE.MathUtils.randFloat(0.7, 1.3), radius); const stonePosY = GAME_PLANE_Y - 0.05 + radius * 0.3; if (placeObjectSafely(stone, radius * 1.5, stonePosY, occupiedPositions)) { stone.rotation.y = Math.random() * Math.PI * 2; stone.rotation.x = (Math.random() - 0.5) * 0.5; stone.rotation.z = (Math.random() - 0.5) * 0.5; stone.castShadow = true; stone.receiveShadow = true; scene.add(stone); environmentObjects.push(stone); stone.updateMatrixWorld(true); obstacles.push({ mesh: stone, radius: radius, worldPos: stone.getWorldPosition(new THREE.Vector3()) }); stonesAdded++; } else { stone.geometry.dispose(); console.warn("Could not place stone safely, skipping."); } } stoneGeometry.dispose(); console.log(`Added ${stonesAdded} stones.`); const trunkGeometry = new THREE.CylinderGeometry(TREE_TRUNK_RADIUS * 0.8, TREE_TRUNK_RADIUS, TREE_TRUNK_HEIGHT, 8); const leavesGeometry = new THREE.IcosahedronGeometry(TREE_LEAVES_RADIUS, 0); let treesAdded = 0; for (let i = 0; i < treeCount; i++) { const treeGroup = new THREE.Group(); const trunk = new THREE.Mesh(trunkGeometry.clone(), treeTrunkMaterial); trunk.castShadow = true; trunk.receiveShadow = true; trunk.position.y = TREE_TRUNK_HEIGHT / 2; treeGroup.add(trunk); const leaves = new THREE.Mesh(leavesGeometry.clone(), treeLeavesMaterial); leaves.castShadow = true; leaves.position.y = TREE_TRUNK_HEIGHT + TREE_LEAVES_RADIUS * 0.5; treeGroup.add(leaves); if (placeObjectSafely(treeGroup, TREE_TRUNK_RADIUS * 2.0, GAME_PLANE_Y - 0.05, occupiedPositions)) { treeGroup.rotation.x = (Math.random() - 0.5) * 0.05; treeGroup.rotation.z = (Math.random() - 0.5) * 0.05; scene.add(treeGroup); environmentObjects.push(treeGroup); treeGroup.updateMatrixWorld(true); obstacles.push({ mesh: trunk, radius: TREE_TRUNK_RADIUS, worldPos: trunk.getWorldPosition(new THREE.Vector3()) }); treesAdded++; } else { trunk.geometry.dispose(); leaves.geometry.dispose(); console.warn("Could not place tree safely, skipping."); } } trunkGeometry.dispose(); leavesGeometry.dispose(); console.log(`Added ${treesAdded} trees.`); const edgesMaterial = new THREE.LineBasicMaterial({ color: 0x78909C, linewidth: 1 }); const boxHelper = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(BOX_SIZE, 0.2, BOX_SIZE)), edgesMaterial); boxHelper.position.y = GAME_PLANE_Y + 0.1; scene.add(boxHelper); environmentObjects.push(boxHelper); }
@@ -315,32 +232,30 @@
         function calculateRelativeVectors2D(currentDirVec) { const forward = currentDirVec.clone().normalize(); let right = new THREE.Vector3(); right.crossVectors(WORLD_UP, forward).normalize(); return { right: right.clone().negate().multiplyScalar(GRID_UNIT), left: right.multiplyScalar(GRID_UNIT) }; }
         function handleRelativeTurn(turnType) { if (isGameOver || gameWon || (turnType !== 'left' && turnType !== 'right')) return; const relative = calculateRelativeVectors2D(direction); let targetDirection = null; if (turnType === 'left') targetDirection = relative.left; else if (turnType === 'right') targetDirection = relative.right; if (targetDirection && !targetDirection.equals(VEC_ZERO)) { const nextDirNegated = nextDirection.clone().negate(); if (!targetDirection.equals(nextDirNegated)) { targetDirection.y = 0; nextDirection.copy(targetDirection); } } }
         function handleKeyDown(event) { if ((isGameOver || gameWon) && event.key === 'Enter') { restartGame(); return; } if (isGameOver || gameWon) return; let handled = true; switch (event.key.toLowerCase()) { case 'arrowleft': case 'a': handleRelativeTurn('left'); break; case 'arrowright': case 'd': handleRelativeTurn('right'); break; default: handled = false; } if (handled) event.preventDefault(); }
-        function handleTouchStart(event) { if (isGameOver || gameWon || event.touches.length === 0) return; touchStartX = event.touches[0].clientX; touchStartY = event.touches[0].clientY; }
-        function handleTouchMove(event) {}
-        function handleTouchEnd(event) { if (isGameOver || gameWon || touchStartX === 0 || touchStartY === 0 || event.changedTouches.length === 0) return; const touchEndX = event.changedTouches[0].clientX; const touchEndY = event.changedTouches[0].clientY; const deltaX = touchEndX - touchStartX; const deltaY = touchEndY - touchStartY; touchStartX = 0; touchStartY = 0; if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) { if (deltaX > 0) handleRelativeTurn('right'); else handleRelativeTurn('left'); event.preventDefault(); } }
-
+        function handleTouchStart(event) { if (isGameOver || gameWon || event.touches.length === 0) return; touchStartX = event.touches[0].clientX; touchStartY = event.touches[0].clientY; event.preventDefault(); /* Prevent potential scrolling on touch */ }
+        function handleTouchMove(event) { event.preventDefault(); /* Prevent scrolling during drag */ }
+        function handleTouchEnd(event) { if (isGameOver || gameWon || touchStartX === 0 || touchStartY === 0 || event.changedTouches.length === 0) return; const touchEndX = event.changedTouches[0].clientX; const touchEndY = event.changedTouches[0].clientY; const deltaX = touchEndX - touchStartX; const deltaY = touchEndY - touchStartY; touchStartX = 0; touchStartY = 0; if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) { if (deltaX > 0) handleRelativeTurn('right'); else handleRelativeTurn('left'); /* event.preventDefault(); already called in touchstart/move */ } }
 
         // --- Resize Handling ---
         function onWindowResize() {
-            // Use window dimensions directly as the container should fill it
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            console.log(`onWindowResize Triggered: ${width}x${height}`);
+            // Use container dimensions which should reflect viewport size via CSS
+            const width = gameContainer.clientWidth;
+            const height = gameContainer.clientHeight;
+            console.log(`onWindowResize: Container ${width}x${height}`);
 
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
+            if (camera && renderer) {
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
 
-            if(renderer) {
-                 const renderPixelRatio = Math.min(window.devicePixelRatio * 1.0, 2);
-                 // Resize the renderer to fill the window directly
-                 renderer.setSize(width, height);
-                 renderer.setPixelRatio(renderPixelRatio);
-                 console.log(`Renderer Resized. Size: ${width}x${height}, Ratio: ${renderPixelRatio}`);
-             }
-             // No need to resize gameContainer element itself via JS, CSS handles it.
+                const renderPixelRatio = Math.min(window.devicePixelRatio * 1.0, 2);
+                renderer.setSize(width, height);
+                renderer.setPixelRatio(renderPixelRatio);
+                console.log(`Renderer Resized. Size: ${width}x${height}, Ratio: ${renderPixelRatio}`);
+            } else {
+                 console.warn("Resize called before camera/renderer initialized.");
+            }
         }
 
-        // --- Fullscreen related functions and listeners REMOVED ---
 
         // --- Start ---
         try {
@@ -349,8 +264,7 @@
         }
         catch (e) {
             console.error("Initialization error:", e);
-            // More robust error display
-            document.body.innerHTML = `<div style="position: absolute; top:0; left:0; width: 100vw; height: 100vh; background: #333; color: red; padding: 20px; font-family: sans-serif; font-size: 1.2em; overflow-y: auto;">Fatal Error: Failed to initialize game. Check console (F12). <br><br>Error: ${e.message}<br><br>Stack: ${e.stack.replace(/\n/g, '<br>') || 'N/A'}</div>`;
+            document.body.innerHTML = `<div style="position: absolute; top:0; left:0; width: 100vw; height: 100vh; background: #333; color: red; padding: 20px; font-family: sans-serif; font-size: 1.2em; overflow-y: auto; z-index: 100;">Fatal Error: Failed to initialize game. Check console (F12). <br><br>Error: ${e.message}<br><br>Stack: ${e.stack.replace(/\n/g, '<br>') || 'N/A'}</div>`;
         }
 
     </script>

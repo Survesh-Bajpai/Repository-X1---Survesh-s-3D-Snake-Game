@@ -2,67 +2,136 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- Crucial viewport settings for mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Survesh's 3D Snake Game</title>
     <style>
-        /* CSS mostly the same, added styles for level, fullscreen, and game title */
-        body { margin: 0; overflow: hidden; background-color: #101518; color: #eee; font-family: 'Arial', sans-serif; display: flex; justify-content: center; align-items: center; flex-direction: column; height: 100vh; }
-        #game-container { position: relative; width: 90%; /* Use percentage for better scaling */ max-width: 1100px; /* Max width */ aspect-ratio: 16 / 9; background-color: #000; border: 2px solid #444; }
-        canvas { display: block; width: 100% !important; height: 100% !important; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+        /* Force body to fill viewport and remove scrollbars */
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            width: 100vw;     /* Full viewport width */
+            height: 100vh;    /* Full viewport height */
+            background-color: #000; /* Black background for body */
+            color: #eee;
+            font-family: 'Arial', sans-serif;
+            /* Display flex to center container (though it now fills screen) */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-        /* UI Elements Positioning */
-        #game-stats { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 5px; text-shadow: 1px 1px 2px black; z-index: 5;}
-        #score { font-size: 1.6em; margin-bottom: 5px; }
-        #level { font-size: 1.2em; color: #aaa; }
+        /* Make game container fill the entire viewport */
+        #game-container {
+            position: relative;
+            width: 100%; /* Fill width */
+            height: 100%; /* Fill height */
+            max-width: none; /* Remove max-width restriction */
+            aspect-ratio: 16 / 9; /* Maintain aspect ratio - may add black bars */
+            background-color: #000;
+            border: none; /* Remove border */
+            /* Ensure container respects viewport dimensions even with aspect ratio */
+            /* Use max-width/max-height to constrain by viewport */
+            max-width: 100vw;
+            max-height: 100vh;
+            /* Center the container if aspect ratio causes letter/pillar-boxing */
+            margin: auto;
+        }
 
-        /* NEW: Game Title Styling */
+        canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* UI Layer remains absolutely positioned within the container */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* --- UI Elements Positioning --- */
+        /* Slightly smaller padding/margins for fullscreen */
+        #game-stats {
+            position: absolute;
+            top: 5px; /* Adjust as needed */
+            left: 5px; /* Adjust as needed */
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-shadow: 1px 1px 2px black;
+            z-index: 5;
+        }
+        #score { font-size: 1.4em; margin-bottom: 3px; } /* Adjust size */
+        #level { font-size: 1.0em; color: #aaa; } /* Adjust size */
+
         #game-title {
             position: absolute;
-            top: 10px;
-            right: 10px; /* Position top right */
-            font-size: 1.5em; /* Adjust size as needed */
+            top: 5px; /* Adjust as needed */
+            right: 5px; /* Adjust as needed */
+            font-size: 1.3em; /* Adjust size */
             font-weight: bold;
-            color: #d0d0d0; /* Light grey color */
+            color: #d0d0d0;
             background: rgba(0,0,0,0.6);
-            padding: 8px 15px;
-            border-radius: 5px;
+            padding: 6px 12px;
+            border-radius: 4px;
             text-shadow: 1px 1px 2px black;
             z-index: 5;
         }
 
-        #game-over { display: none; flex-direction: column; justify-content: center; align-items: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); text-align: center; pointer-events: all; z-index: 10; }
+        #game-over {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            text-align: center;
+            pointer-events: all;
+            z-index: 10;
+        }
         #game-over h2 { margin: 0 0 15px 0; font-size: 2.5em; color: #ff4d4d; }
         #game-over p { font-size: 1.2em; margin-bottom: 20px; }
         #restart-button { padding: 12px 25px; font-size: 1.1em; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 5px; transition: background-color 0.2s; }
         #restart-button:hover { background-color: #45a049; }
 
-        #fullscreen-button { position: absolute; bottom: 10px; right: 10px; padding: 8px 12px; font-size: 0.9em; cursor: pointer; background-color: #333; color: white; border: 1px solid #555; border-radius: 5px; pointer-events: all; z-index: 5; transition: background-color 0.2s;}
-        #fullscreen-button:hover { background-color: #555; }
-
-        #instructions { position: absolute; bottom: 10px; left: 10px; font-size: 0.9em; background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 5px; max-width: 280px; z-index: 5; }
-
-        @media (max-width: 700px) { /* Adjust UI for smaller screens */
-             #game-title { font-size: 1.1em; padding: 6px 10px; }
-             #score { font-size: 1.3em; }
-             #level { font-size: 1.0em;}
-             #instructions { max-width: 200px; font-size: 0.8em;}
-        }
-        @media (hover: none) and (pointer: coarse) {
-            #instructions { display: none; }
-            #score { font-size: 1.3em; } #level { font-size: 1.0em;}
+        /* Instructions hidden by default on small/touch screens */
+        #instructions {
+            position: absolute;
+            bottom: 5px; /* Adjust */
+            left: 5px; /* Adjust */
+            font-size: 0.8em; /* Adjust */
+            background: rgba(0,0,0,0.6);
+            padding: 5px 8px;
+            border-radius: 4px;
+            max-width: 200px; /* Adjust */
+            z-index: 5;
+            display: none; /* Hide by default, show on larger screens */
         }
 
+        /* Media query to show instructions on larger screens */
+        @media (min-width: 600px) and (min-height: 400px) {
+             #instructions { display: block; }
+        }
 
-        /* Style for when container is fullscreen */
-        #game-container:-webkit-full-screen { width: 100%; height: 100%; max-width: none; border: none;}
-        #game-container:-moz-full-screen { width: 100%; height: 100%; max-width: none; border: none;}
-        #game-container:-ms-fullscreen { width: 100%; height: 100%; max-width: none; border: none;}
-        #game-container:fullscreen { width: 100%; height: 100%; max-width: none; border: none;}
+         /* Remove specific fullscreen button styles */
+        /* Remove fullscreen container styles - now default */
 
     </style>
 </head>
 <body>
+    <!-- Container now fills the viewport via CSS -->
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="ui-layer">
@@ -70,13 +139,9 @@
                 <div id="score">Score: 0</div>
                 <div id="level">Level: 1</div>
              </div>
-             <!-- NEW: Game Title Element -->
              <div id="game-title">Survesh's 3D Snake Game</div>
-
              <div id="instructions">
-                <b>Controls (2D):</b><br>
-                Arrow Keys Left/Right: Turn Snake<br>
-                Mobile: Swipe Left/Right to Turn<br>
+                <b>Controls:</b> Arrow Keys or Swipe Left/Right<br>
                 <b>Goal:</b> Eat food, avoid obstacles & self!
             </div>
              <div id="game-over">
@@ -85,16 +150,16 @@
                 <button id="restart-button">Restart</button>
             </div>
         </div>
-         <button id="fullscreen-button">Full Screen</button>
+         <!-- Fullscreen button REMOVED -->
     </div>
 
     <!-- Three.js Core ONLY -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        console.log("Script starting - Level-Based Snake Version with Title & Collision Fix");
+        console.log("Script starting - Auto Full View / Landscape Attempt");
 
-        // --- Configuration ---
+        // --- Configuration (remains the same) ---
         const BOX_SIZE = 60;
         const GAME_PLANE_Y = 0; const GRID_UNIT = 1;
         const TUBE_RADIUS = GRID_UNIT * 0.40;
@@ -103,38 +168,23 @@
         const INITIAL_SNAKE_LENGTH = 5; const INITIAL_SPEED_MS = 190; const SPEED_INCREMENT_FACTOR = 0.97; const MIN_SPEED_MS = 60;
         const CAMERA_FOLLOW_DISTANCE = 19; const CAMERA_FOLLOW_HEIGHT = 30; const CAMERA_LERP_FACTOR = 0.06;
         const TUBE_RADIAL_SEGMENTS = 6; const TUBE_SEGMENT_MULTIPLIER = 4;
-
-        // Environment Config
         const TALL_GRASS_COUNT = 250;
         const TALL_GRASS_HEIGHT = GRID_UNIT * 1.5; const TALL_GRASS_WIDTH = GRID_UNIT * 0.1;
         const SHORT_GRASS_COUNT = 10000;
         const SHORT_GRASS_HEIGHT = GRID_UNIT * 0.4; const SHORT_GRASS_WIDTH = GRID_UNIT * 0.08;
         const STONE_MIN_RADIUS = GRID_UNIT * 0.6; const STONE_MAX_RADIUS = GRID_UNIT * 1.4;
-        const TREE_TRUNK_HEIGHT = GRID_UNIT * 2.8; const TREE_TRUNK_RADIUS = GRID_UNIT * 0.35; // Collision radius for trunk base
+        const TREE_TRUNK_HEIGHT = GRID_UNIT * 2.8; const TREE_TRUNK_RADIUS = GRID_UNIT * 0.35;
         const TREE_LEAVES_RADIUS = GRID_UNIT * 1.5;
-
-        // Level Configuration
         const LEVEL_TARGETS = [5, 10, 15, 20, 25];
-        const CUMULATIVE_LEVEL_TARGETS = LEVEL_TARGETS.reduce((acc, val, i) => {
-            acc.push((i === 0 ? 0 : acc[i-1]) + val);
-            return acc;
-        }, []);
+        const CUMULATIVE_LEVEL_TARGETS = LEVEL_TARGETS.reduce((acc, val, i) => { acc.push((i === 0 ? 0 : acc[i-1]) + val); return acc; }, []);
         const MAX_LEVEL = LEVEL_TARGETS.length;
-        const LEVEL_OBSTACLES = [
-            { trees: 1, stones: 1 }, // Level 1
-            { trees: 3, stones: 3 }, // Level 2
-            { trees: 5, stones: 5 }, // Level 3
-            { trees: 7, stones: 7 }, // Level 4
-            { trees: 9, stones: 9 }  // Level 5
-        ];
-
-        // Material Config
+        const LEVEL_OBSTACLES = [ { trees: 1, stones: 1 }, { trees: 3, stones: 3 }, { trees: 5, stones: 5 }, { trees: 7, stones: 7 }, { trees: 9, stones: 9 } ];
         const SNAKE_BODY_COLOR = 0x111111; const SNAKE_HEAD_COLOR = 0x111111; const FOOD_COLOR = 0xff0000;
         const SNAKE_BODY_EMISSIVE = 0x000000; const SNAKE_HEAD_EMISSIVE = 0x000000; const FOOD_EMISSIVE = 0xcc0000;
         const SNAKE_BODY_EMISSIVE_INTENSITY = 0; const SNAKE_HEAD_EMISSIVE_INTENSITY = 0; const FOOD_EMissive_INTENSITY = 0.8;
         const SNAKE_METALNESS = 0.8; const SNAKE_ROUGHNESS = 0.2; const FOOD_METALNESS = 0.1; const FOOD_ROUGHNESS = 0.3;
 
-        // --- Game State ---
+        // --- Game State (remains the same) ---
         let scene, camera, renderer, clock;
         let snake = []; let previousSnake = [];
         let snakeTubeMesh = null; let snakeHeadMesh = null; let food = null;
@@ -146,13 +196,13 @@
         let snakeBodyMaterial, snakeHeadMaterial, foodMaterial;
         let tallGrassMaterial, shortGrassMaterial, stoneMaterial, treeTrunkMaterial, treeLeavesMaterial;
         let instancedShortGrass = null; const environmentObjects = [];
-        let obstacles = []; // Array to store { mesh: THREE.Mesh, radius: float, worldPos: THREE.Vector3 } for collision
+        let obstacles = [];
 
-        // --- Constants ---
+        // --- Constants (remains the same) ---
         const WORLD_UP = new THREE.Vector3(0, 1, 0); const VEC_ZERO = new THREE.Vector3(0, 0, 0);
         const HALF_BOX = BOX_SIZE / 2;
-        const SELF_COLLISION_PADDING_FACTOR = 0.7; // Factor applied to sum of radii for self-collision
-        const OBSTACLE_COLLISION_PADDING_FACTOR = 0.85; // Slightly tighter padding for obstacles
+        const SELF_COLLISION_PADDING_FACTOR = 0.7;
+        const OBSTACLE_COLLISION_PADDING_FACTOR = 0.85;
 
         // --- DOM Elements ---
         const gameContainer = document.getElementById('game-container'); const canvas = document.getElementById('gameCanvas');
@@ -161,25 +211,30 @@
         const gameOverTitle = document.getElementById('game-over-title');
         const gameOverMessage = document.getElementById('game-over-message');
         const finalScoreElement = document.getElementById('final-score'); const restartButton = document.getElementById('restart-button');
-        const fullscreenButton = document.getElementById('fullscreen-button');
-        // const gameTitleElement = document.getElementById('game-title'); // No specific JS needed for title
+        // fullscreenButton element REMOVED
 
-        // --- Touch Input State ---
+        // --- Touch Input State (remains the same) ---
         let touchStartX = 0; let touchStartY = 0; const swipeThreshold = 30;
 
         // --- Initialization ---
         function init() {
-            console.log("init() started - Level Based Version");
+            console.log("init() started");
             clock = new THREE.Clock();
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x101518);
+            scene.background = new THREE.Color(0x101518); // Match body background if needed
             scene.fog = new THREE.Fog(scene.background, BOX_SIZE * 0.6, BOX_SIZE * 1.8);
 
-            const aspect = gameContainer.clientWidth / gameContainer.clientHeight;
+            // Renderer and Camera setup needs to use the actual container size
+            const containerWidth = gameContainer.clientWidth;
+            const containerHeight = gameContainer.clientHeight;
+            const aspect = containerWidth / containerHeight;
+            console.log(`Initial Container Size: ${containerWidth}x${containerHeight}, Aspect: ${aspect.toFixed(2)}`);
+
             camera = new THREE.PerspectiveCamera(55, aspect, 0.1, BOX_SIZE * 5);
 
             renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-            renderer.setSize(gameContainer.clientWidth, gameContainer.clientHeight);
+            // Set initial size based on container
+            renderer.setSize(containerWidth, containerHeight);
             const renderPixelRatio = Math.min(window.devicePixelRatio * 1.0, 2);
             renderer.setPixelRatio(renderPixelRatio);
             renderer.outputEncoding = THREE.sRGBEncoding;
@@ -188,7 +243,7 @@
 
             defineMaterials();
             setupLighting();
-            resetGame();
+            resetGame(); // Environment created inside resetGame
 
             isGameOver = false;
             gameWon = false;
@@ -196,732 +251,96 @@
             gameLoop();
             scheduleNextLogicTick();
 
-            // Event Listeners
-            window.addEventListener('keydown', handleKeyDown); window.addEventListener('resize', onWindowResize);
+            // --- Attempt Landscape Lock (Best Effort) ---
+            try {
+                if (screen.orientation && typeof screen.orientation.lock === 'function') {
+                    screen.orientation.lock('landscape').then(() => {
+                        console.log('Screen orientation locked to landscape (if supported).');
+                        // Trigger resize after potential orientation change
+                        setTimeout(onWindowResize, 300);
+                    }).catch((error) => {
+                        console.warn('Screen orientation lock failed:', error);
+                    });
+                } else if (screen.lockOrientation) { // Older API attempts
+                     screen.lockOrientation('landscape');
+                } else if (screen.mozLockOrientation) {
+                     screen.mozLockOrientation('landscape');
+                } else if (screen.msLockOrientation) {
+                     screen.msLockOrientation('landscape');
+                } else {
+                    console.log('Screen Orientation API not fully supported.');
+                }
+            } catch (e) {
+                console.error('Error attempting to lock orientation:', e);
+            }
+
+            // --- Event Listeners ---
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('resize', onWindowResize); // Still important!
             restartButton.addEventListener('click', restartGame);
-            fullscreenButton.addEventListener('click', toggleFullScreen);
+            // Fullscreen button listener REMOVED
             canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
             canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
             canvas.addEventListener('touchend', handleTouchEnd);
 
+            // Initial resize call to ensure layout is correct after potential scrollbars disappear etc.
+             setTimeout(onWindowResize, 100); // Delay slightly
+
             console.log("init() finished");
         }
 
-        function defineMaterials() {
-             console.log("Defining materials...");
-             snakeBodyMaterial = new THREE.MeshStandardMaterial({ color: SNAKE_BODY_COLOR, metalness: SNAKE_METALNESS, roughness: SNAKE_ROUGHNESS, emissive: SNAKE_BODY_EMISSIVE, emissiveIntensity: SNAKE_BODY_EMISSIVE_INTENSITY });
-             snakeHeadMaterial = new THREE.MeshStandardMaterial({ color: SNAKE_HEAD_COLOR, metalness: SNAKE_METALNESS, roughness: SNAKE_ROUGHNESS, emissive: SNAKE_HEAD_EMISSIVE, emissiveIntensity: SNAKE_HEAD_EMISSIVE_INTENSITY });
-             foodMaterial = new THREE.MeshStandardMaterial({ color: FOOD_COLOR, metalness: FOOD_METALNESS, roughness: FOOD_ROUGHNESS, emissive: FOOD_EMISSIVE, emissiveIntensity: FOOD_EMissive_INTENSITY });
-             tallGrassMaterial = new THREE.MeshLambertMaterial({ color: 0x2E7D32 });
-             shortGrassMaterial = new THREE.MeshLambertMaterial({ color: 0x4CAF50, side: THREE.DoubleSide });
-             stoneMaterial = new THREE.MeshStandardMaterial({ color: 0x607D8B, roughness: 0.9, metalness: 0.1 });
-             treeTrunkMaterial = new THREE.MeshLambertMaterial({ color: 0x5D4037 });
-             treeLeavesMaterial = new THREE.MeshLambertMaterial({ color: 0x1B5E20 });
-        }
-
-        function setupLighting() {
-            console.log("Setting up lighting...");
-            scene.add(new THREE.AmbientLight(0x404040, 0.8));
-            scene.add( new THREE.HemisphereLight( 0x607080, 0x303040, 0.6 ) );
-
-            const keyLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
-            keyLight1.position.set(BOX_SIZE * 0.5, BOX_SIZE * 0.6, BOX_SIZE * 0.7);
-            keyLight1.castShadow = true;
-            keyLight1.shadow.mapSize.width = 2048; keyLight1.shadow.mapSize.height = 2048;
-            keyLight1.shadow.camera.near = 1; keyLight1.shadow.camera.far = BOX_SIZE * 3;
-            const shadowCamSize = BOX_SIZE * 1.0;
-            keyLight1.shadow.camera.left = -shadowCamSize; keyLight1.shadow.camera.right = shadowCamSize;
-            keyLight1.shadow.camera.top = shadowCamSize; keyLight1.shadow.camera.bottom = -shadowCamSize;
-            keyLight1.shadow.bias = -0.003;
-            keyLight1.target.position.set(0, GAME_PLANE_Y - BOX_SIZE * 0.1 , 0);
-            scene.add(keyLight1); scene.add(keyLight1.target);
-
-            const keyLight2 = new THREE.DirectionalLight(0xaaaaff, 0.6);
-            keyLight2.position.set(-BOX_SIZE * 0.4, BOX_SIZE * 0.7, -BOX_SIZE * 0.6);
-            keyLight2.castShadow = false;
-            keyLight2.target.position.set(0, GAME_PLANE_Y, 0);
-            scene.add(keyLight2); scene.add(keyLight2.target);
-        }
-
-        function createEnvironment(level) {
-            console.log(`Creating environment for Level ${level}...`);
-            disposeEnvironment();
-
-            // Ground Plane
-            const planeGeometry = new THREE.PlaneGeometry(BOX_SIZE, BOX_SIZE);
-            const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x384838, side: THREE.DoubleSide, metalness: 0.05, roughness: 0.95 });
-            const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-            groundPlane.rotation.x = -Math.PI / 2; groundPlane.position.y = GAME_PLANE_Y - 0.05;
-            groundPlane.receiveShadow = true;
-            scene.add(groundPlane);
-            environmentObjects.push(groundPlane);
-
-            const levelIndex = Math.min(level - 1, LEVEL_OBSTACLES.length - 1);
-            const { trees: treeCount, stones: stoneCount } = LEVEL_OBSTACLES[levelIndex];
-            console.log(` - Trees: ${treeCount}, Stones: ${stoneCount}`);
-
-            // --- Grass ---
-            const tallGrassGeometry = new THREE.BoxGeometry(TALL_GRASS_WIDTH, TALL_GRASS_HEIGHT, TALL_GRASS_WIDTH);
-            for (let i = 0; i < TALL_GRASS_COUNT; i++) {
-                 const grass = new THREE.Mesh(tallGrassGeometry, tallGrassMaterial);
-                 placeObjectSafely(grass, 0, TALL_GRASS_HEIGHT / 2);
-                 grass.rotation.y = Math.random() * Math.PI * 2;
-                 grass.castShadow = true;
-                 scene.add(grass); environmentObjects.push(grass);
-             }
-             tallGrassGeometry.dispose();
-
-            const shortGrassGeometry = new THREE.BoxGeometry(SHORT_GRASS_WIDTH, SHORT_GRASS_HEIGHT, SHORT_GRASS_WIDTH);
-            instancedShortGrass = new THREE.InstancedMesh(shortGrassGeometry, shortGrassMaterial, SHORT_GRASS_COUNT);
-            instancedShortGrass.castShadow = false; instancedShortGrass.receiveShadow = true;
-            const _matrix = new THREE.Matrix4(); const _position = new THREE.Vector3();
-            const _quat = new THREE.Quaternion(); const _scale = new THREE.Vector3(1, 1, 1);
-            for (let i = 0; i < SHORT_GRASS_COUNT; i++) {
-                 _position.x = Math.random() * BOX_SIZE - HALF_BOX; _position.z = Math.random() * BOX_SIZE - HALF_BOX;
-                 _position.y = GAME_PLANE_Y + SHORT_GRASS_HEIGHT / 2 - 0.04;
-                 _quat.setFromAxisAngle(WORLD_UP, Math.random() * Math.PI * 2);
-                 const tiltX = (Math.random() - 0.5) * 0.3; const tiltZ = (Math.random() - 0.5) * 0.3;
-                 const tiltQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(tiltX, 0, tiltZ));
-                 _quat.multiply(tiltQuat);
-                 _matrix.compose(_position, _quat, _scale);
-                 instancedShortGrass.setMatrixAt(i, _matrix);
-             }
-             instancedShortGrass.instanceMatrix.needsUpdate = true;
-             scene.add(instancedShortGrass);
-             console.log(`Added ${TALL_GRASS_COUNT} tall grass, ${SHORT_GRASS_COUNT} short grass instances.`);
-
-            // --- Obstacles ---
-             const occupiedPositions = []; // Store { position: Vector3, radius: float }
-
-             // Stones
-             const stoneGeometry = new THREE.IcosahedronGeometry(1, 0);
-             let stonesAdded = 0;
-             for (let i = 0; i < stoneCount; i++) {
-                 const radius = THREE.MathUtils.randFloat(STONE_MIN_RADIUS, STONE_MAX_RADIUS);
-                 const stone = new THREE.Mesh(stoneGeometry.clone(), stoneMaterial);
-                 stone.scale.set(radius, radius * THREE.MathUtils.randFloat(0.7, 1.3), radius);
-                 const stonePosY = GAME_PLANE_Y - 0.05 + radius * 0.3;
-                 if (placeObjectSafely(stone, radius * 1.5, stonePosY, occupiedPositions)) {
-                    stone.rotation.y = Math.random() * Math.PI * 2;
-                    stone.rotation.x = (Math.random() - 0.5) * 0.5;
-                    stone.rotation.z = (Math.random() - 0.5) * 0.5;
-                    stone.castShadow = true; stone.receiveShadow = true;
-                    scene.add(stone); environmentObjects.push(stone);
-                    // Update world position immediately after adding to scene and setting position
-                    stone.updateMatrixWorld(true); // Force update
-                    obstacles.push({ mesh: stone, radius: radius, worldPos: stone.getWorldPosition(new THREE.Vector3()) }); // Store world pos
-                    stonesAdded++;
-                 } else {
-                    stone.geometry.dispose(); // Clean up if not placed
-                    console.warn("Could not place stone safely, skipping.");
-                 }
-             }
-             stoneGeometry.dispose();
-             console.log(`Added ${stonesAdded} stones.`);
-
-            // Trees
-             const trunkGeometry = new THREE.CylinderGeometry(TREE_TRUNK_RADIUS * 0.8, TREE_TRUNK_RADIUS, TREE_TRUNK_HEIGHT, 8);
-             const leavesGeometry = new THREE.IcosahedronGeometry(TREE_LEAVES_RADIUS, 0);
-             let treesAdded = 0;
-             for (let i = 0; i < treeCount; i++) {
-                 const treeGroup = new THREE.Group();
-                 const trunk = new THREE.Mesh(trunkGeometry.clone(), treeTrunkMaterial);
-                 trunk.castShadow = true; trunk.receiveShadow = true;
-                 trunk.position.y = TREE_TRUNK_HEIGHT / 2;
-                 treeGroup.add(trunk);
-                 const leaves = new THREE.Mesh(leavesGeometry.clone(), treeLeavesMaterial);
-                 leaves.castShadow = true;
-                 leaves.position.y = TREE_TRUNK_HEIGHT + TREE_LEAVES_RADIUS * 0.5;
-                 treeGroup.add(leaves);
-
-                 if (placeObjectSafely(treeGroup, TREE_TRUNK_RADIUS * 2.0, GAME_PLANE_Y - 0.05, occupiedPositions)) {
-                    treeGroup.rotation.x = (Math.random() - 0.5) * 0.05;
-                    treeGroup.rotation.z = (Math.random() - 0.5) * 0.05;
-                    scene.add(treeGroup); environmentObjects.push(treeGroup);
-                    // Update world matrix for the group and get trunk's world position
-                    treeGroup.updateMatrixWorld(true); // Force update for the group
-                    obstacles.push({ mesh: trunk, radius: TREE_TRUNK_RADIUS, worldPos: trunk.getWorldPosition(new THREE.Vector3()) }); // Store trunk's world pos
-                    treesAdded++;
-                 } else {
-                    trunk.geometry.dispose(); leaves.geometry.dispose(); // Clean up
-                    console.warn("Could not place tree safely, skipping.");
-                 }
-             }
-             trunkGeometry.dispose(); leavesGeometry.dispose();
-             console.log(`Added ${treesAdded} trees.`);
-
-             // Boundary Lines
-             const edgesMaterial = new THREE.LineBasicMaterial({ color: 0x78909C, linewidth: 1 });
-             const boxHelper = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(BOX_SIZE, 0.2, BOX_SIZE)), edgesMaterial);
-             boxHelper.position.y = GAME_PLANE_Y + 0.1;
-             scene.add(boxHelper); environmentObjects.push(boxHelper);
-        }
-
-        function placeObjectSafely(obj, avoidanceRadius, yPos, occupied = [], maxAttempts = 30) { // Increased attempts
-            const safeMargin = GRID_UNIT * 3; // Increased margin from edge
-            const spawnRangeX = BOX_SIZE - avoidanceRadius * 2 - safeMargin * 2;
-            const spawnRangeZ = BOX_SIZE - avoidanceRadius * 2 - safeMargin * 2;
-            const offsetX = HALF_BOX - avoidanceRadius - safeMargin;
-            const offsetZ = HALF_BOX - avoidanceRadius - safeMargin;
-
-            // Also avoid the initial snake spawn area (approx)
-            const initialSnakeZoneRadiusSq = (INITIAL_SNAKE_LENGTH * GRID_UNIT * 1.5)**2;
-            const center = new THREE.Vector3(0, yPos, 0);
-
-            for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                const x = Math.random() * spawnRangeX - offsetX;
-                const z = Math.random() * spawnRangeZ - offsetZ;
-                const potentialPos = new THREE.Vector3(x, yPos, z);
-
-                // Check distance from center (initial snake area)
-                if (potentialPos.distanceToSquared(center) < initialSnakeZoneRadiusSq) {
-                    continue; // Too close to spawn, try again
-                }
-
-                let tooClose = false;
-                // Check distance from other placed obstacles
-                for (const occupiedData of occupied) {
-                    // Increase required distance slightly to prevent visual overlap
-                    const requiredDistSq = (avoidanceRadius + occupiedData.radius + GRID_UNIT * 0.5)**2;
-                    if (potentialPos.distanceToSquared(occupiedData.position) < requiredDistSq) {
-                        tooClose = true;
-                        break;
-                    }
-                }
-                if (!tooClose) {
-                    obj.position.copy(potentialPos);
-                    if (occupied) {
-                         occupied.push({ position: potentialPos.clone(), radius: avoidanceRadius });
-                    }
-                    return true;
-                }
-            }
-            console.warn(`Failed to place object safely after ${maxAttempts} attempts.`);
-            return false;
-        }
-
-
-        function disposeEnvironment() {
-             console.log("Disposing environment objects...");
-             environmentObjects.forEach(obj => {
-                 if (obj instanceof THREE.Group) {
-                     obj.traverse(child => {
-                         if (child.geometry) child.geometry.dispose();
-                         if (child.material) {
-                            if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-                            else child.material.dispose();
-                         }
-                     });
-                 } else {
-                     if (obj.geometry) obj.geometry.dispose();
-                      if (obj.material) {
-                            if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-                            else obj.material.dispose();
-                         }
-                 }
-                 scene.remove(obj);
-             });
-             environmentObjects.length = 0;
-
-             if (instancedShortGrass) {
-                 scene.remove(instancedShortGrass);
-                 instancedShortGrass.geometry.dispose();
-                 instancedShortGrass.material.dispose();
-                 instancedShortGrass = null;
-             }
-             obstacles.length = 0;
-             console.log("Environment disposal complete.");
-         }
-
-        // --- Game Logic & Rendering ---
-
-        function resetGame(isRestart = true) {
-             console.log("Resetting Game...");
-             clearTimeout(gameLoopTimeout);
-
-             if (isRestart) {
-                 currentLevel = 1; score = 0; gameWon = false;
-             }
-
-             disposeSnakeMeshes();
-             if (food) { scene.remove(food); if(food.geometry) food.geometry.dispose(); food = null; }
-
-             // Environment is created *after* clearing old snake/food but *before* new snake/food
-             createEnvironment(currentLevel);
-
-             snake = []; previousSnake = [];
-             direction.set(GRID_UNIT, 0, 0); nextDirection.copy(direction);
-
-             const startZ = 0; const startX = -Math.floor(INITIAL_SNAKE_LENGTH / 2) * GRID_UNIT;
-             for (let i = 0; i < INITIAL_SNAKE_LENGTH; i++) {
-                 const pos = new THREE.Vector3(startX + i * GRID_UNIT, GAME_PLANE_Y, startZ);
-                 snake.push(pos); previousSnake.push(pos.clone());
-             }
-             snake.reverse(); previousSnake.reverse();
-
-             currentSpeedMs = INITIAL_SPEED_MS * Math.pow(SPEED_INCREMENT_FACTOR, score);
-             currentSpeedMs = Math.max(MIN_SPEED_MS, currentSpeedMs);
-
-             scoreElement.textContent = `Score: ${score}`;
-             levelElement.textContent = `Level: ${currentLevel}`;
-             gameOverElement.style.display = 'none';
-             isGameOver = false;
-
-             updateSnakeMesh(previousSnake);
-             if (snake.length > 0) {
-                snakeHeadPosition.copy(snake[0]); updateCamera(true);
-             }
-
-             generateFood(); // Generate food *after* obstacles and snake are placed
-
-             lastTickTime = clock.getElapsedTime();
-             if (!isGameOver && !gameWon) { scheduleNextLogicTick(); }
-             console.log(`Game Reset Complete. Level ${currentLevel}, Score ${score}`);
-         }
-
-         function advanceLevel() {
-            console.log(`Level ${currentLevel} Complete! Advancing to Level ${currentLevel + 1}`);
-            currentLevel++;
-            levelElement.textContent = `Level: ${currentLevel}`;
-            resetGame(false); // false = not a full restart, keep score
-         }
-
-
-        function updateSnakeMesh(points) {
-            disposeSnakeMeshes();
-            if (!points || points.length < 2) { return; }
-            try {
-                 const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.3);
-                 const tubularSegments = Math.max(2, Math.floor(points.length * TUBE_SEGMENT_MULTIPLIER));
-                 const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, TUBE_RADIUS, TUBE_RADIAL_SEGMENTS, false);
-                 snakeTubeMesh = new THREE.Mesh(tubeGeometry, snakeBodyMaterial);
-                 snakeTubeMesh.castShadow = true;
-                 scene.add(snakeTubeMesh);
-
-                 const headGeometry = new THREE.SphereGeometry(SNAKE_HEAD_RADIUS, 16, 8);
-                 snakeHeadMesh = new THREE.Mesh(headGeometry, snakeHeadMaterial);
-                 if(points[0]) {
-                     snakeHeadMesh.position.copy(points[0]);
-                     if (points.length > 1 && points[1]) { // Check points[1] exists
-                         const lookAtPos = points[0].clone().lerp(points[1], -1.0); // Point slightly ahead
-                         lookAtPos.y = GAME_PLANE_Y; // Keep looking horizontal
-                         // Avoid looking at self if points are too close (can happen at start/fast turns)
-                         if(points[0].distanceToSquared(lookAtPos) > 0.01) {
-                            snakeHeadMesh.lookAt(lookAtPos);
-                         }
-                     }
-                     snakeHeadMesh.castShadow = true;
-                     scene.add(snakeHeadMesh);
-                 } else {
-                     snakeHeadMesh = null;
-                 }
-             } catch(e) {
-                 console.error("Error creating snake mesh:", e, "Points:", JSON.stringify(points));
-                 disposeSnakeMeshes();
-             }
-         }
-
-        function disposeSnakeMeshes() {
-             try {
-                 if (snakeTubeMesh) { scene.remove(snakeTubeMesh); if(snakeTubeMesh.geometry) snakeTubeMesh.geometry.dispose(); }
-                 if (snakeHeadMesh) { scene.remove(snakeHeadMesh); if(snakeHeadMesh.geometry) snakeHeadMesh.geometry.dispose(); }
-             } catch(e) { console.error("Error disposing snake mesh:", e); }
-             snakeTubeMesh = null; snakeHeadMesh = null;
-         }
-
-        function generateFood() {
-             if (food) { scene.remove(food); if(food.geometry) food.geometry.dispose();}
-             const geometry = new THREE.IcosahedronGeometry(FOOD_RADIUS, 1);
-             food = new THREE.Mesh(geometry, foodMaterial);
-             food.castShadow = true;
-
-             let foodPos;
-             let validPosition = false;
-             const spawnRange = BOX_SIZE - GRID_UNIT * 4; // Keep food away from edges
-             const halfSpawnRange = spawnRange / 2;
-             let attempts = 0; const maxAttempts = 150; // Increased attempts
-
-             const occupiedCheckRadiusSq = (FOOD_RADIUS + GRID_UNIT * 1.5)**2; // Larger check radius for food placement
-
-             while (!validPosition && attempts < maxAttempts) {
-                 attempts++;
-                 const x = Math.round((Math.random() * spawnRange - halfSpawnRange) / GRID_UNIT) * GRID_UNIT;
-                 const z = Math.round((Math.random() * spawnRange - halfSpawnRange) / GRID_UNIT) * GRID_UNIT;
-                 foodPos = new THREE.Vector3(x, GAME_PLANE_Y + FOOD_RADIUS * 0.5, z);
-                 validPosition = true;
-
-                 // Check snake body
-                 for (const segmentPos of snake) {
-                     if (segmentPos.distanceToSquared(foodPos) < occupiedCheckRadiusSq) {
-                         validPosition = false; break;
-                     }
-                 }
-                 if (!validPosition) continue;
-
-                 // Check obstacles (using pre-calculated worldPos)
-                 for (const obs of obstacles) {
-                    const requiredDistSq = (obs.radius + FOOD_RADIUS + GRID_UNIT)**2;
-                     if (obs.worldPos.distanceToSquared(foodPos) < requiredDistSq) {
-                         validPosition = false; break;
-                     }
-                 }
-             }
-
-             if (!validPosition) {
-                 console.warn("Could not find valid position for food after", maxAttempts, "attempts. Placing near center.");
-                 // Fallback: place near center, checking only snake collision briefly
-                 let fallbackAttempts = 0;
-                 do {
-                     const x = Math.round((Math.random() * HALF_BOX - HALF_BOX / 2) / GRID_UNIT) * GRID_UNIT; // Closer to center
-                     const z = Math.round((Math.random() * HALF_BOX - HALF_BOX / 2) / GRID_UNIT) * GRID_UNIT;
-                     foodPos = new THREE.Vector3(x, GAME_PLANE_Y + FOOD_RADIUS * 0.5, z);
-                     validPosition = true;
-                     for (const segmentPos of snake) {
-                         if (segmentPos.distanceToSquared(foodPos) < occupiedCheckRadiusSq) { validPosition = false; break; }
-                     }
-                     fallbackAttempts++;
-                 } while (!validPosition && fallbackAttempts < 20);
-                 // If still no luck, just place it at 0,0 (will likely be inside snake, but avoids infinite loop)
-                 if (!validPosition) foodPos.set(0, GAME_PLANE_Y + FOOD_RADIUS * 0.5, 0);
-
-             }
-
-             food.position.copy(foodPos);
-             scene.add(food);
-             console.log("Food generated at:", foodPos.x.toFixed(1), foodPos.z.toFixed(1));
-         }
-
-
-        // Checks collision between head position and defined obstacles
-        function checkObstacleCollision(headPos) {
-            // Using squared distances for efficiency
-            for (const obs of obstacles) {
-                // Calculate the minimum distance required between centers for collision
-                // (Sum of radii) multiplied by a padding factor to make it slightly more forgiving
-                const collisionDistance = (SNAKE_HEAD_RADIUS + obs.radius) * OBSTACLE_COLLISION_PADDING_FACTOR;
-                const requiredDistSq = collisionDistance * collisionDistance; // Square the result
-
-                // Compare squared distance between head and obstacle's world position
-                if (headPos.distanceToSquared(obs.worldPos) < requiredDistSq) {
-                     console.log(`Obstacle collision! Head: (${headPos.x.toFixed(1)}, ${headPos.z.toFixed(1)}), Obstacle (${obs.mesh.type}): (${obs.worldPos.x.toFixed(1)}, ${obs.worldPos.z.toFixed(1)}), DistSq: ${headPos.distanceToSquared(obs.worldPos).toFixed(2)}, ReqSq: ${requiredDistSq.toFixed(2)}`);
-                     return true; // Collision detected
-                 }
-            }
-            return false; // No collision
-        }
-
-        // Game Logic Update
-        function updateGameLogic() {
-            if (isGameOver || gameWon) return;
-
-            previousSnake = snake.map(p => p.clone()); // Store previous state
-
-            // Update direction
-            nextDirection.y = 0;
-            if (!nextDirection.equals(VEC_ZERO) && !nextDirection.equals(direction.clone().negate())) {
-                direction.copy(nextDirection);
-            } else {
-                nextDirection.copy(direction);
-            }
-            direction.y = 0; direction.setLength(GRID_UNIT);
-
-            const currentHeadPos = snake[0];
-            const newHeadPos = currentHeadPos.clone().add(direction);
-            newHeadPos.y = GAME_PLANE_Y; // Keep snake on the plane
-
-            // 1. Wall Collision Check
-            if (Math.abs(newHeadPos.x) >= HALF_BOX - GRID_UNIT*0.1 || Math.abs(newHeadPos.z) >= HALF_BOX - GRID_UNIT*0.1) { // Check slightly inside boundary
-                console.log("Wall collision");
-                triggerGameOver("Hit the arena boundary!");
-                return;
-            }
-
-            // 2. Obstacle Collision Check - **CORRECTED**
-            if (checkObstacleCollision(newHeadPos)) {
-                 triggerGameOver("Hit an obstacle!");
-                 return;
-             }
-
-            // 3. Self Collision Check
-            // Calculate required distance using radii and padding factor
-            const selfCollisionDistance = (TUBE_RADIUS + SNAKE_HEAD_RADIUS) * SELF_COLLISION_PADDING_FACTOR;
-            const selfCollisionDistSq = selfCollisionDistance * selfCollisionDistance; // Square it
-            for (let i = 3; i < snake.length; i++) { // Start check further back
-                 if (newHeadPos.distanceToSquared(snake[i]) < selfCollisionDistSq) {
-                     console.log(`Self collision at index ${i}. Head: (${newHeadPos.x.toFixed(1)}, ${newHeadPos.z.toFixed(1)}), Segment: (${snake[i].x.toFixed(1)}, ${snake[i].z.toFixed(1)}), DistSq: ${newHeadPos.distanceToSquared(snake[i]).toFixed(2)}, ReqSq: ${selfCollisionDistSq.toFixed(2)}`);
-                     triggerGameOver("Bit your own tail!");
-                     return;
-                 }
-             }
-
-            // 4. Food Collision Check
-            let ateFood = false;
-            const foodCollisionDist = (SNAKE_HEAD_RADIUS + FOOD_RADIUS) * 0.9; // Use radii sum
-            const foodCollisionDistSq = foodCollisionDist * foodCollisionDist;
-            if (food && newHeadPos.distanceToSquared(food.position) < foodCollisionDistSq) {
-                ateFood = true;
-                score++;
-                scoreElement.textContent = `Score: ${score}`;
-
-                currentSpeedMs = INITIAL_SPEED_MS * Math.pow(SPEED_INCREMENT_FACTOR, score);
-                currentSpeedMs = Math.max(MIN_SPEED_MS, currentSpeedMs);
-                // console.log("Ate food. Score:", score, "New Speed (ms):", currentSpeedMs.toFixed(1));
-
-                // Check Level Up / Win
-                if (currentLevel <= MAX_LEVEL && score >= CUMULATIVE_LEVEL_TARGETS[currentLevel - 1]) {
-                    if (currentLevel === MAX_LEVEL) {
-                        triggerGameWin(); return;
-                    } else {
-                        advanceLevel(); return; // Stop current tick
-                    }
-                } else {
-                     generateFood(); // Generate new food only if not leveling/winning
-                }
-            }
-
-            // Move Snake
-             snake.unshift(newHeadPos.clone());
-             if (!ateFood) { snake.pop(); }
-
-            lastTickTime = clock.getElapsedTime();
-            scheduleNextLogicTick();
-        }
-
-        function scheduleNextLogicTick() {
-             if (!isGameOver && !gameWon) {
-                 clearTimeout(gameLoopTimeout);
-                 gameLoopTimeout = setTimeout(updateGameLogic, currentSpeedMs);
-             }
-         }
-
-        // Render Loop (Interpolation)
-        function gameLoop() {
-             requestAnimationFrame(gameLoop);
-             const elapsedTime = clock.getElapsedTime();
-             if (!renderer || !scene || !camera) { console.error("Missing components in gameLoop"); return; }
-
-             if (!isGameOver && !gameWon && snake && snake.length >= 2 && previousSnake && previousSnake.length === snake.length) {
-                 const timeSinceLastTick = elapsedTime - lastTickTime;
-                 const gameTickDuration = currentSpeedMs / 1000.0;
-                 const alpha = (gameTickDuration > 0.001) ? Math.max(0, Math.min(1.0, timeSinceLastTick / gameTickDuration)) : 1.0;
-
-                 const interpolatedSnake = [];
-                 const len = snake.length; // Use current length
-
-                 if (len > 0) {
-                     for (let i = 0; i < len; i++) {
-                         // Ensure both points are valid Vectors
-                         if (previousSnake[i] instanceof THREE.Vector3 && snake[i] instanceof THREE.Vector3) {
-                             interpolatedSnake.push(previousSnake[i].clone().lerp(snake[i], alpha));
-                         } else {
-                             // Fallback if previous data missing (e.g., just grew)
-                             interpolatedSnake.push(snake[i] ? snake[i].clone() : new THREE.Vector3());
-                         }
-                     }
-
-                     if (interpolatedSnake.length >= 2) {
-                         updateSnakeMesh(interpolatedSnake);
-                         if(snakeHeadMesh) snakeHeadPosition.copy(interpolatedSnake[0]);
-                     } else if (snake.length >= 2) {
-                          updateSnakeMesh(snake); // Fallback if interpolation resulted in too few points
-                          if(snakeHeadMesh) snakeHeadPosition.copy(snake[0]);
-                     }
-                 } else if (snake.length >= 2) {
-                      updateSnakeMesh(snake); // Use logical if interpolation isn't possible
-                      if(snakeHeadMesh) snakeHeadPosition.copy(snake[0]);
-                 }
-
-                 if (snake.length > 0 && snakeHeadMesh) { updateCamera(); }
-
-             } else if (!isGameOver && !gameWon) { // Render based on logical state if not interpolating
-                  updateSnakeMesh(snake);
-                  if (snake.length > 0 && snakeHeadMesh) {
-                    snakeHeadPosition.copy(snake[0]); updateCamera();
-                  }
-             } else if (isGameOver || gameWon) {
-                // Keep rendering the static scene (environment, maybe food) after game over/win
-                // but don't update snake or camera based on snake movement
-                updateCamera(); // Keep camera looking (maybe slowly rotate?)
-             }
-
-
-             renderer.render(scene, camera);
-        }
-
-        function updateCamera(forceImmediate = false) {
-             // Use snakeHeadPosition which is updated either by interpolation or directly
-             if (!snakeHeadPosition || snakeHeadPosition.equals(VEC_ZERO) && snake.length > 0) {
-                // If headPos is zero but snake exists, fallback to snake[0]
-                if(snake[0]) snakeHeadPosition.copy(snake[0]);
-                else return; // No valid position to track
-             } else if (snake.length === 0 && !isGameOver && !gameWon) {
-                 return; // Don't update if snake doesn't exist yet
-             }
-             // If game over/won, use the last known head position
-             const targetPosition = snakeHeadPosition;
-
-             const currentDirXZ = direction.clone(); // Use logical direction for camera orientation
-             currentDirXZ.y = 0; currentDirXZ.normalize();
-             const backwardsXZ = currentDirXZ.negate();
-
-             desiredCameraPosition.copy(targetPosition)
-                 .add(backwardsXZ.multiplyScalar(CAMERA_FOLLOW_DISTANCE))
-                 .add(new THREE.Vector3(0, CAMERA_FOLLOW_HEIGHT, 0));
-
-             if (forceImmediate) {
-                 camera.position.copy(desiredCameraPosition);
-             } else {
-                 camera.position.lerp(desiredCameraPosition, CAMERA_LERP_FACTOR);
-             }
-             camera.lookAt(targetPosition);
-         }
-
-        function triggerGameOver(reason = "Game Over!") {
-             if (isGameOver) return;
-             isGameOver = true; gameWon = false;
-             clearTimeout(gameLoopTimeout);
-             console.log("Game Over! Reason:", reason, "Score:", score, "Level:", currentLevel);
-
-             gameOverTitle.textContent = "Game Over!"; gameOverTitle.style.color = '#ff4d4d';
-             gameOverMessage.innerHTML = `Reason: ${reason}<br>Final Score: <span id="final-score">${score}</span><br>Reached Level: ${currentLevel}`;
-             gameOverElement.style.display = 'flex';
-
-             disposeSnakeMeshes();
-         }
-
-        function triggerGameWin() {
-            if (gameWon || isGameOver) return;
-             isGameOver = true; gameWon = true; // Set both flags
-             clearTimeout(gameLoopTimeout);
-             console.log("You Win! Completed all levels! Final Score:", score);
-
-             gameOverTitle.textContent = "You Win!"; gameOverTitle.style.color = '#4CAF50';
-             gameOverMessage.innerHTML = `Congratulations! You completed all ${MAX_LEVEL} levels!<br>Final Score: <span id="final-score">${score}</span>`;
-             gameOverElement.style.display = 'flex';
-
-             disposeSnakeMeshes();
-        }
-
-
-        function restartGame() {
-             console.log("Restarting game from button...");
-             gameOverElement.style.display = 'none';
-             isGameOver = false; gameWon = false;
-             resetGame(true); // true = full reset
-         }
-
-        // --- Relative Turn Calculation (2D) ---
-        function calculateRelativeVectors2D(currentDirVec) {
-             const forward = currentDirVec.clone().normalize();
-             let right = new THREE.Vector3();
-             right.crossVectors(WORLD_UP, forward).normalize(); // Up x Forward = Left
-             return {
-                 right: right.clone().negate().multiplyScalar(GRID_UNIT), // Negate for Right
-                 left: right.multiplyScalar(GRID_UNIT) // Original was Left
-             };
-         }
-
-        // --- Event Handlers (2D Controls) ---
-        function handleRelativeTurn(turnType) {
-             if (isGameOver || gameWon || (turnType !== 'left' && turnType !== 'right')) return;
-             const relative = calculateRelativeVectors2D(direction);
-             let targetDirection = null;
-             if (turnType === 'left') targetDirection = relative.left;
-             else if (turnType === 'right') targetDirection = relative.right;
-
-             if (targetDirection && !targetDirection.equals(VEC_ZERO)) {
-                 // Prevent queuing a 180-degree turn relative to the *next* queued direction
-                 const nextDirNegated = nextDirection.clone().negate();
-                  if (!targetDirection.equals(nextDirNegated)) {
-                     targetDirection.y = 0;
-                     nextDirection.copy(targetDirection);
-                     // console.log("Queued turn:", turnType);
-                  }
-             }
-         }
-
-        function handleKeyDown(event) {
-            if ((isGameOver || gameWon) && event.key === 'Enter') { restartGame(); return; }
-             if (isGameOver || gameWon) return;
-             let handled = true;
-             switch (event.key.toLowerCase()) { // Use toLowerCase for wasd
-                 case 'arrowleft': case 'a': handleRelativeTurn('left'); break;
-                 case 'arrowright': case 'd': handleRelativeTurn('right'); break;
-                 default: handled = false;
-             }
-             if (handled) event.preventDefault();
-         }
-
-        function handleTouchStart(event) {
-            if (isGameOver || gameWon || event.touches.length === 0) return;
-            touchStartX = event.touches[0].clientX; touchStartY = event.touches[0].clientY;
-        }
-        function handleTouchMove(event) { /* No action needed, but prevent default potentially */ }
-        function handleTouchEnd(event) {
-            if (isGameOver || gameWon || touchStartX === 0 || touchStartY === 0 || event.changedTouches.length === 0) return;
-            const touchEndX = event.changedTouches[0].clientX; const touchEndY = event.changedTouches[0].clientY;
-            const deltaX = touchEndX - touchStartX; const deltaY = touchEndY - touchStartY;
-            touchStartX = 0; touchStartY = 0; // Reset
-            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
-                 if (deltaX > 0) handleRelativeTurn('right');
-                 else handleRelativeTurn('left');
-                 event.preventDefault(); // Prevent click/other actions after swipe
-             }
-        }
-
+        // --- Functions (defineMaterials, setupLighting, createEnvironment, placeObjectSafely, disposeEnvironment, resetGame, advanceLevel, updateSnakeMesh, disposeSnakeMeshes, generateFood, checkObstacleCollision, updateGameLogic, scheduleNextLogicTick, gameLoop, updateCamera, triggerGameOver, triggerGameWin, restartGame, calculateRelativeVectors2D, handleRelativeTurn, handleKeyDown, handleTouchStart, handleTouchMove, handleTouchEnd) ---
+        // These functions remain largely the same as your previous version.
+        // Make sure they don't reference the fullscreenButton.
+        // ... (Paste the JS functions from your previous working version here, ensuring no fullscreen button logic remains) ...
+        // --- [PASTE ALL JS FUNCTIONS HERE, VERIFY NO FULLSCREENBUTTON REFERENCES] ---
+        function defineMaterials() { console.log("Defining materials..."); snakeBodyMaterial = new THREE.MeshStandardMaterial({ color: SNAKE_BODY_COLOR, metalness: SNAKE_METALNESS, roughness: SNAKE_ROUGHNESS, emissive: SNAKE_BODY_EMISSIVE, emissiveIntensity: SNAKE_BODY_EMISSIVE_INTENSITY }); snakeHeadMaterial = new THREE.MeshStandardMaterial({ color: SNAKE_HEAD_COLOR, metalness: SNAKE_METALNESS, roughness: SNAKE_ROUGHNESS, emissive: SNAKE_HEAD_EMISSIVE, emissiveIntensity: SNAKE_HEAD_EMISSIVE_INTENSITY }); foodMaterial = new THREE.MeshStandardMaterial({ color: FOOD_COLOR, metalness: FOOD_METALNESS, roughness: FOOD_ROUGHNESS, emissive: FOOD_EMISSIVE, emissiveIntensity: FOOD_EMissive_INTENSITY }); tallGrassMaterial = new THREE.MeshLambertMaterial({ color: 0x2E7D32 }); shortGrassMaterial = new THREE.MeshLambertMaterial({ color: 0x4CAF50, side: THREE.DoubleSide }); stoneMaterial = new THREE.MeshStandardMaterial({ color: 0x607D8B, roughness: 0.9, metalness: 0.1 }); treeTrunkMaterial = new THREE.MeshLambertMaterial({ color: 0x5D4037 }); treeLeavesMaterial = new THREE.MeshLambertMaterial({ color: 0x1B5E20 }); }
+        function setupLighting() { console.log("Setting up lighting..."); scene.add(new THREE.AmbientLight(0x404040, 0.8)); scene.add(new THREE.HemisphereLight(0x607080, 0x303040, 0.6)); const keyLight1 = new THREE.DirectionalLight(0xffffff, 1.2); keyLight1.position.set(BOX_SIZE * 0.5, BOX_SIZE * 0.6, BOX_SIZE * 0.7); keyLight1.castShadow = true; keyLight1.shadow.mapSize.width = 2048; keyLight1.shadow.mapSize.height = 2048; keyLight1.shadow.camera.near = 1; keyLight1.shadow.camera.far = BOX_SIZE * 3; const shadowCamSize = BOX_SIZE * 1.0; keyLight1.shadow.camera.left = -shadowCamSize; keyLight1.shadow.camera.right = shadowCamSize; keyLight1.shadow.camera.top = shadowCamSize; keyLight1.shadow.camera.bottom = -shadowCamSize; keyLight1.shadow.bias = -0.003; keyLight1.target.position.set(0, GAME_PLANE_Y - BOX_SIZE * 0.1, 0); scene.add(keyLight1); scene.add(keyLight1.target); const keyLight2 = new THREE.DirectionalLight(0xaaaaff, 0.6); keyLight2.position.set(-BOX_SIZE * 0.4, BOX_SIZE * 0.7, -BOX_SIZE * 0.6); keyLight2.castShadow = false; keyLight2.target.position.set(0, GAME_PLANE_Y, 0); scene.add(keyLight2); scene.add(keyLight2.target); }
+        function createEnvironment(level) { console.log(`Creating environment for Level ${level}...`); disposeEnvironment(); const planeGeometry = new THREE.PlaneGeometry(BOX_SIZE, BOX_SIZE); const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x384838, side: THREE.DoubleSide, metalness: 0.05, roughness: 0.95 }); const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial); groundPlane.rotation.x = -Math.PI / 2; groundPlane.position.y = GAME_PLANE_Y - 0.05; groundPlane.receiveShadow = true; scene.add(groundPlane); environmentObjects.push(groundPlane); const levelIndex = Math.min(level - 1, LEVEL_OBSTACLES.length - 1); const { trees: treeCount, stones: stoneCount } = LEVEL_OBSTACLES[levelIndex]; console.log(` - Trees: ${treeCount}, Stones: ${stoneCount}`); const tallGrassGeometry = new THREE.BoxGeometry(TALL_GRASS_WIDTH, TALL_GRASS_HEIGHT, TALL_GRASS_WIDTH); for (let i = 0; i < TALL_GRASS_COUNT; i++) { const grass = new THREE.Mesh(tallGrassGeometry, tallGrassMaterial); placeObjectSafely(grass, 0, TALL_GRASS_HEIGHT / 2); grass.rotation.y = Math.random() * Math.PI * 2; grass.castShadow = true; scene.add(grass); environmentObjects.push(grass); } tallGrassGeometry.dispose(); const shortGrassGeometry = new THREE.BoxGeometry(SHORT_GRASS_WIDTH, SHORT_GRASS_HEIGHT, SHORT_GRASS_WIDTH); instancedShortGrass = new THREE.InstancedMesh(shortGrassGeometry, shortGrassMaterial, SHORT_GRASS_COUNT); instancedShortGrass.castShadow = false; instancedShortGrass.receiveShadow = true; const _matrix = new THREE.Matrix4(); const _position = new THREE.Vector3(); const _quat = new THREE.Quaternion(); const _scale = new THREE.Vector3(1, 1, 1); for (let i = 0; i < SHORT_GRASS_COUNT; i++) { _position.x = Math.random() * BOX_SIZE - HALF_BOX; _position.z = Math.random() * BOX_SIZE - HALF_BOX; _position.y = GAME_PLANE_Y + SHORT_GRASS_HEIGHT / 2 - 0.04; _quat.setFromAxisAngle(WORLD_UP, Math.random() * Math.PI * 2); const tiltX = (Math.random() - 0.5) * 0.3; const tiltZ = (Math.random() - 0.5) * 0.3; const tiltQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(tiltX, 0, tiltZ)); _quat.multiply(tiltQuat); _matrix.compose(_position, _quat, _scale); instancedShortGrass.setMatrixAt(i, _matrix); } instancedShortGrass.instanceMatrix.needsUpdate = true; scene.add(instancedShortGrass); console.log(`Added ${TALL_GRASS_COUNT} tall grass, ${SHORT_GRASS_COUNT} short grass instances.`); const occupiedPositions = []; const stoneGeometry = new THREE.IcosahedronGeometry(1, 0); let stonesAdded = 0; for (let i = 0; i < stoneCount; i++) { const radius = THREE.MathUtils.randFloat(STONE_MIN_RADIUS, STONE_MAX_RADIUS); const stone = new THREE.Mesh(stoneGeometry.clone(), stoneMaterial); stone.scale.set(radius, radius * THREE.MathUtils.randFloat(0.7, 1.3), radius); const stonePosY = GAME_PLANE_Y - 0.05 + radius * 0.3; if (placeObjectSafely(stone, radius * 1.5, stonePosY, occupiedPositions)) { stone.rotation.y = Math.random() * Math.PI * 2; stone.rotation.x = (Math.random() - 0.5) * 0.5; stone.rotation.z = (Math.random() - 0.5) * 0.5; stone.castShadow = true; stone.receiveShadow = true; scene.add(stone); environmentObjects.push(stone); stone.updateMatrixWorld(true); obstacles.push({ mesh: stone, radius: radius, worldPos: stone.getWorldPosition(new THREE.Vector3()) }); stonesAdded++; } else { stone.geometry.dispose(); console.warn("Could not place stone safely, skipping."); } } stoneGeometry.dispose(); console.log(`Added ${stonesAdded} stones.`); const trunkGeometry = new THREE.CylinderGeometry(TREE_TRUNK_RADIUS * 0.8, TREE_TRUNK_RADIUS, TREE_TRUNK_HEIGHT, 8); const leavesGeometry = new THREE.IcosahedronGeometry(TREE_LEAVES_RADIUS, 0); let treesAdded = 0; for (let i = 0; i < treeCount; i++) { const treeGroup = new THREE.Group(); const trunk = new THREE.Mesh(trunkGeometry.clone(), treeTrunkMaterial); trunk.castShadow = true; trunk.receiveShadow = true; trunk.position.y = TREE_TRUNK_HEIGHT / 2; treeGroup.add(trunk); const leaves = new THREE.Mesh(leavesGeometry.clone(), treeLeavesMaterial); leaves.castShadow = true; leaves.position.y = TREE_TRUNK_HEIGHT + TREE_LEAVES_RADIUS * 0.5; treeGroup.add(leaves); if (placeObjectSafely(treeGroup, TREE_TRUNK_RADIUS * 2.0, GAME_PLANE_Y - 0.05, occupiedPositions)) { treeGroup.rotation.x = (Math.random() - 0.5) * 0.05; treeGroup.rotation.z = (Math.random() - 0.5) * 0.05; scene.add(treeGroup); environmentObjects.push(treeGroup); treeGroup.updateMatrixWorld(true); obstacles.push({ mesh: trunk, radius: TREE_TRUNK_RADIUS, worldPos: trunk.getWorldPosition(new THREE.Vector3()) }); treesAdded++; } else { trunk.geometry.dispose(); leaves.geometry.dispose(); console.warn("Could not place tree safely, skipping."); } } trunkGeometry.dispose(); leavesGeometry.dispose(); console.log(`Added ${treesAdded} trees.`); const edgesMaterial = new THREE.LineBasicMaterial({ color: 0x78909C, linewidth: 1 }); const boxHelper = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(BOX_SIZE, 0.2, BOX_SIZE)), edgesMaterial); boxHelper.position.y = GAME_PLANE_Y + 0.1; scene.add(boxHelper); environmentObjects.push(boxHelper); }
+        function placeObjectSafely(obj, avoidanceRadius, yPos, occupied = [], maxAttempts = 30) { const safeMargin = GRID_UNIT * 3; const spawnRangeX = BOX_SIZE - avoidanceRadius * 2 - safeMargin * 2; const spawnRangeZ = BOX_SIZE - avoidanceRadius * 2 - safeMargin * 2; const offsetX = HALF_BOX - avoidanceRadius - safeMargin; const offsetZ = HALF_BOX - avoidanceRadius - safeMargin; const initialSnakeZoneRadiusSq = (INITIAL_SNAKE_LENGTH * GRID_UNIT * 1.5)**2; const center = new THREE.Vector3(0, yPos, 0); for (let attempt = 0; attempt < maxAttempts; attempt++) { const x = Math.random() * spawnRangeX - offsetX; const z = Math.random() * spawnRangeZ - offsetZ; const potentialPos = new THREE.Vector3(x, yPos, z); if (potentialPos.distanceToSquared(center) < initialSnakeZoneRadiusSq) { continue; } let tooClose = false; for (const occupiedData of occupied) { const requiredDistSq = (avoidanceRadius + occupiedData.radius + GRID_UNIT * 0.5)**2; if (potentialPos.distanceToSquared(occupiedData.position) < requiredDistSq) { tooClose = true; break; } } if (!tooClose) { obj.position.copy(potentialPos); if (occupied) { occupied.push({ position: potentialPos.clone(), radius: avoidanceRadius }); } return true; } } console.warn(`Failed to place object safely after ${maxAttempts} attempts.`); return false; }
+        function disposeEnvironment() { console.log("Disposing environment objects..."); environmentObjects.forEach(obj => { if (obj instanceof THREE.Group) { obj.traverse(child => { if (child.geometry) child.geometry.dispose(); if (child.material) { if (Array.isArray(child.material)) child.material.forEach(m => m.dispose()); else child.material.dispose(); } }); } else { if (obj.geometry) obj.geometry.dispose(); if (obj.material) { if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose()); else obj.material.dispose(); } } scene.remove(obj); }); environmentObjects.length = 0; if (instancedShortGrass) { scene.remove(instancedShortGrass); instancedShortGrass.geometry.dispose(); instancedShortGrass.material.dispose(); instancedShortGrass = null; } obstacles.length = 0; console.log("Environment disposal complete."); }
+        function resetGame(isRestart = true) { console.log("Resetting Game..."); clearTimeout(gameLoopTimeout); if (isRestart) { currentLevel = 1; score = 0; gameWon = false; } disposeSnakeMeshes(); if (food) { scene.remove(food); if (food.geometry) food.geometry.dispose(); food = null; } createEnvironment(currentLevel); snake = []; previousSnake = []; direction.set(GRID_UNIT, 0, 0); nextDirection.copy(direction); const startZ = 0; const startX = -Math.floor(INITIAL_SNAKE_LENGTH / 2) * GRID_UNIT; for (let i = 0; i < INITIAL_SNAKE_LENGTH; i++) { const pos = new THREE.Vector3(startX + i * GRID_UNIT, GAME_PLANE_Y, startZ); snake.push(pos); previousSnake.push(pos.clone()); } snake.reverse(); previousSnake.reverse(); currentSpeedMs = INITIAL_SPEED_MS * Math.pow(SPEED_INCREMENT_FACTOR, score); currentSpeedMs = Math.max(MIN_SPEED_MS, currentSpeedMs); scoreElement.textContent = `Score: ${score}`; levelElement.textContent = `Level: ${currentLevel}`; gameOverElement.style.display = 'none'; isGameOver = false; updateSnakeMesh(previousSnake); if (snake.length > 0) { snakeHeadPosition.copy(snake[0]); updateCamera(true); } generateFood(); lastTickTime = clock.getElapsedTime(); if (!isGameOver && !gameWon) { scheduleNextLogicTick(); } console.log(`Game Reset Complete. Level ${currentLevel}, Score ${score}`); }
+        function advanceLevel() { console.log(`Level ${currentLevel} Complete! Advancing to Level ${currentLevel + 1}`); currentLevel++; levelElement.textContent = `Level: ${currentLevel}`; resetGame(false); }
+        function updateSnakeMesh(points) { disposeSnakeMeshes(); if (!points || points.length < 2) { return; } try { const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.3); const tubularSegments = Math.max(2, Math.floor(points.length * TUBE_SEGMENT_MULTIPLIER)); const tubeGeometry = new THREE.TubeGeometry(curve, tubularSegments, TUBE_RADIUS, TUBE_RADIAL_SEGMENTS, false); snakeTubeMesh = new THREE.Mesh(tubeGeometry, snakeBodyMaterial); snakeTubeMesh.castShadow = true; scene.add(snakeTubeMesh); const headGeometry = new THREE.SphereGeometry(SNAKE_HEAD_RADIUS, 16, 8); snakeHeadMesh = new THREE.Mesh(headGeometry, snakeHeadMaterial); if (points[0]) { snakeHeadMesh.position.copy(points[0]); if (points.length > 1 && points[1]) { const lookAtPos = points[0].clone().lerp(points[1], -1.0); lookAtPos.y = GAME_PLANE_Y; if (points[0].distanceToSquared(lookAtPos) > 0.01) { snakeHeadMesh.lookAt(lookAtPos); } } snakeHeadMesh.castShadow = true; scene.add(snakeHeadMesh); } else { snakeHeadMesh = null; } } catch (e) { console.error("Error creating snake mesh:", e, "Points:", JSON.stringify(points)); disposeSnakeMeshes(); } }
+        function disposeSnakeMeshes() { try { if (snakeTubeMesh) { scene.remove(snakeTubeMesh); if (snakeTubeMesh.geometry) snakeTubeMesh.geometry.dispose(); } if (snakeHeadMesh) { scene.remove(snakeHeadMesh); if (snakeHeadMesh.geometry) snakeHeadMesh.geometry.dispose(); } } catch (e) { console.error("Error disposing snake mesh:", e); } snakeTubeMesh = null; snakeHeadMesh = null; }
+        function generateFood() { if (food) { scene.remove(food); if (food.geometry) food.geometry.dispose(); } const geometry = new THREE.IcosahedronGeometry(FOOD_RADIUS, 1); food = new THREE.Mesh(geometry, foodMaterial); food.castShadow = true; let foodPos; let validPosition = false; const spawnRange = BOX_SIZE - GRID_UNIT * 4; const halfSpawnRange = spawnRange / 2; let attempts = 0; const maxAttempts = 150; const occupiedCheckRadiusSq = (FOOD_RADIUS + GRID_UNIT * 1.5)**2; while (!validPosition && attempts < maxAttempts) { attempts++; const x = Math.round((Math.random() * spawnRange - halfSpawnRange) / GRID_UNIT) * GRID_UNIT; const z = Math.round((Math.random() * spawnRange - halfSpawnRange) / GRID_UNIT) * GRID_UNIT; foodPos = new THREE.Vector3(x, GAME_PLANE_Y + FOOD_RADIUS * 0.5, z); validPosition = true; for (const segmentPos of snake) { if (segmentPos.distanceToSquared(foodPos) < occupiedCheckRadiusSq) { validPosition = false; break; } } if (!validPosition) continue; for (const obs of obstacles) { const requiredDistSq = (obs.radius + FOOD_RADIUS + GRID_UNIT)**2; if (obs.worldPos.distanceToSquared(foodPos) < requiredDistSq) { validPosition = false; break; } } } if (!validPosition) { console.warn("Could not find valid position for food after", maxAttempts, "attempts. Placing near center."); let fallbackAttempts = 0; do { const x = Math.round((Math.random() * HALF_BOX - HALF_BOX / 2) / GRID_UNIT) * GRID_UNIT; const z = Math.round((Math.random() * HALF_BOX - HALF_BOX / 2) / GRID_UNIT) * GRID_UNIT; foodPos = new THREE.Vector3(x, GAME_PLANE_Y + FOOD_RADIUS * 0.5, z); validPosition = true; for (const segmentPos of snake) { if (segmentPos.distanceToSquared(foodPos) < occupiedCheckRadiusSq) { validPosition = false; break; } } fallbackAttempts++; } while (!validPosition && fallbackAttempts < 20); if (!validPosition) foodPos.set(0, GAME_PLANE_Y + FOOD_RADIUS * 0.5, 0); } food.position.copy(foodPos); scene.add(food); console.log("Food generated at:", foodPos.x.toFixed(1), foodPos.z.toFixed(1)); }
+        function checkObstacleCollision(headPos) { for (const obs of obstacles) { const collisionDistance = (SNAKE_HEAD_RADIUS + obs.radius) * OBSTACLE_COLLISION_PADDING_FACTOR; const requiredDistSq = collisionDistance * collisionDistance; if (headPos.distanceToSquared(obs.worldPos) < requiredDistSq) { console.log(`Obstacle collision! Head: (${headPos.x.toFixed(1)}, ${headPos.z.toFixed(1)}), Obstacle (${obs.mesh.type}): (${obs.worldPos.x.toFixed(1)}, ${obs.worldPos.z.toFixed(1)}), DistSq: ${headPos.distanceToSquared(obs.worldPos).toFixed(2)}, ReqSq: ${requiredDistSq.toFixed(2)}`); return true; } } return false; }
+        function updateGameLogic() { if (isGameOver || gameWon) return; previousSnake = snake.map(p => p.clone()); nextDirection.y = 0; if (!nextDirection.equals(VEC_ZERO) && !nextDirection.equals(direction.clone().negate())) { direction.copy(nextDirection); } else { nextDirection.copy(direction); } direction.y = 0; direction.setLength(GRID_UNIT); const currentHeadPos = snake[0]; const newHeadPos = currentHeadPos.clone().add(direction); newHeadPos.y = GAME_PLANE_Y; if (Math.abs(newHeadPos.x) >= HALF_BOX - GRID_UNIT * 0.1 || Math.abs(newHeadPos.z) >= HALF_BOX - GRID_UNIT * 0.1) { console.log("Wall collision"); triggerGameOver("Hit the arena boundary!"); return; } if (checkObstacleCollision(newHeadPos)) { triggerGameOver("Hit an obstacle!"); return; } const selfCollisionDistance = (TUBE_RADIUS + SNAKE_HEAD_RADIUS) * SELF_COLLISION_PADDING_FACTOR; const selfCollisionDistSq = selfCollisionDistance * selfCollisionDistance; for (let i = 3; i < snake.length; i++) { if (newHeadPos.distanceToSquared(snake[i]) < selfCollisionDistSq) { console.log(`Self collision at index ${i}. Head: (${newHeadPos.x.toFixed(1)}, ${newHeadPos.z.toFixed(1)}), Segment: (${snake[i].x.toFixed(1)}, ${snake[i].z.toFixed(1)}), DistSq: ${newHeadPos.distanceToSquared(snake[i]).toFixed(2)}, ReqSq: ${selfCollisionDistSq.toFixed(2)}`); triggerGameOver("Bit your own tail!"); return; } } let ateFood = false; const foodCollisionDist = (SNAKE_HEAD_RADIUS + FOOD_RADIUS) * 0.9; const foodCollisionDistSq = foodCollisionDist * foodCollisionDist; if (food && newHeadPos.distanceToSquared(food.position) < foodCollisionDistSq) { ateFood = true; score++; scoreElement.textContent = `Score: ${score}`; currentSpeedMs = INITIAL_SPEED_MS * Math.pow(SPEED_INCREMENT_FACTOR, score); currentSpeedMs = Math.max(MIN_SPEED_MS, currentSpeedMs); if (currentLevel <= MAX_LEVEL && score >= CUMULATIVE_LEVEL_TARGETS[currentLevel - 1]) { if (currentLevel === MAX_LEVEL) { triggerGameWin(); return; } else { advanceLevel(); return; } } else { generateFood(); } } snake.unshift(newHeadPos.clone()); if (!ateFood) { snake.pop(); } lastTickTime = clock.getElapsedTime(); scheduleNextLogicTick(); }
+        function scheduleNextLogicTick() { if (!isGameOver && !gameWon) { clearTimeout(gameLoopTimeout); gameLoopTimeout = setTimeout(updateGameLogic, currentSpeedMs); } }
+        function gameLoop() { requestAnimationFrame(gameLoop); const elapsedTime = clock.getElapsedTime(); if (!renderer || !scene || !camera) { console.error("Missing components in gameLoop"); return; } if (!isGameOver && !gameWon && snake && snake.length >= 2 && previousSnake && previousSnake.length === snake.length) { const timeSinceLastTick = elapsedTime - lastTickTime; const gameTickDuration = currentSpeedMs / 1000.0; const alpha = (gameTickDuration > 0.001) ? Math.max(0, Math.min(1.0, timeSinceLastTick / gameTickDuration)) : 1.0; const interpolatedSnake = []; const len = snake.length; if (len > 0) { for (let i = 0; i < len; i++) { if (previousSnake[i] instanceof THREE.Vector3 && snake[i] instanceof THREE.Vector3) { interpolatedSnake.push(previousSnake[i].clone().lerp(snake[i], alpha)); } else { interpolatedSnake.push(snake[i] ? snake[i].clone() : new THREE.Vector3()); } } if (interpolatedSnake.length >= 2) { updateSnakeMesh(interpolatedSnake); if (snakeHeadMesh) snakeHeadPosition.copy(interpolatedSnake[0]); } else if (snake.length >= 2) { updateSnakeMesh(snake); if (snakeHeadMesh) snakeHeadPosition.copy(snake[0]); } } else if (snake.length >= 2) { updateSnakeMesh(snake); if (snakeHeadMesh) snakeHeadPosition.copy(snake[0]); } if (snake.length > 0 && snakeHeadMesh) { updateCamera(); } } else if (!isGameOver && !gameWon) { updateSnakeMesh(snake); if (snake.length > 0 && snakeHeadMesh) { snakeHeadPosition.copy(snake[0]); updateCamera(); } } else if (isGameOver || gameWon) { updateCamera(); } renderer.render(scene, camera); }
+        function updateCamera(forceImmediate = false) { if (!snakeHeadPosition || snakeHeadPosition.equals(VEC_ZERO) && snake.length > 0) { if (snake[0]) snakeHeadPosition.copy(snake[0]); else return; } else if (snake.length === 0 && !isGameOver && !gameWon) { return; } const targetPosition = snakeHeadPosition; const currentDirXZ = direction.clone(); currentDirXZ.y = 0; currentDirXZ.normalize(); const backwardsXZ = currentDirXZ.negate(); desiredCameraPosition.copy(targetPosition) .add(backwardsXZ.multiplyScalar(CAMERA_FOLLOW_DISTANCE)) .add(new THREE.Vector3(0, CAMERA_FOLLOW_HEIGHT, 0)); if (forceImmediate) { camera.position.copy(desiredCameraPosition); } else { camera.position.lerp(desiredCameraPosition, CAMERA_LERP_FACTOR); } camera.lookAt(targetPosition); }
+        function triggerGameOver(reason = "Game Over!") { if (isGameOver) return; isGameOver = true; gameWon = false; clearTimeout(gameLoopTimeout); console.log("Game Over! Reason:", reason, "Score:", score, "Level:", currentLevel); gameOverTitle.textContent = "Game Over!"; gameOverTitle.style.color = '#ff4d4d'; gameOverMessage.innerHTML = `Reason: ${reason}<br>Final Score: <span id="final-score">${score}</span><br>Reached Level: ${currentLevel}`; gameOverElement.style.display = 'flex'; disposeSnakeMeshes(); }
+        function triggerGameWin() { if (gameWon || isGameOver) return; isGameOver = true; gameWon = true; clearTimeout(gameLoopTimeout); console.log("You Win! Completed all levels! Final Score:", score); gameOverTitle.textContent = "You Win!"; gameOverTitle.style.color = '#4CAF50'; gameOverMessage.innerHTML = `Congratulations! You completed all ${MAX_LEVEL} levels!<br>Final Score: <span id="final-score">${score}</span>`; gameOverElement.style.display = 'flex'; disposeSnakeMeshes(); }
+        function restartGame() { console.log("Restarting game from button..."); gameOverElement.style.display = 'none'; isGameOver = false; gameWon = false; resetGame(true); }
+        function calculateRelativeVectors2D(currentDirVec) { const forward = currentDirVec.clone().normalize(); let right = new THREE.Vector3(); right.crossVectors(WORLD_UP, forward).normalize(); return { right: right.clone().negate().multiplyScalar(GRID_UNIT), left: right.multiplyScalar(GRID_UNIT) }; }
+        function handleRelativeTurn(turnType) { if (isGameOver || gameWon || (turnType !== 'left' && turnType !== 'right')) return; const relative = calculateRelativeVectors2D(direction); let targetDirection = null; if (turnType === 'left') targetDirection = relative.left; else if (turnType === 'right') targetDirection = relative.right; if (targetDirection && !targetDirection.equals(VEC_ZERO)) { const nextDirNegated = nextDirection.clone().negate(); if (!targetDirection.equals(nextDirNegated)) { targetDirection.y = 0; nextDirection.copy(targetDirection); } } }
+        function handleKeyDown(event) { if ((isGameOver || gameWon) && event.key === 'Enter') { restartGame(); return; } if (isGameOver || gameWon) return; let handled = true; switch (event.key.toLowerCase()) { case 'arrowleft': case 'a': handleRelativeTurn('left'); break; case 'arrowright': case 'd': handleRelativeTurn('right'); break; default: handled = false; } if (handled) event.preventDefault(); }
+        function handleTouchStart(event) { if (isGameOver || gameWon || event.touches.length === 0) return; touchStartX = event.touches[0].clientX; touchStartY = event.touches[0].clientY; }
+        function handleTouchMove(event) {}
+        function handleTouchEnd(event) { if (isGameOver || gameWon || touchStartX === 0 || touchStartY === 0 || event.changedTouches.length === 0) return; const touchEndX = event.changedTouches[0].clientX; const touchEndY = event.changedTouches[0].clientY; const deltaX = touchEndX - touchStartX; const deltaY = touchEndY - touchStartY; touchStartX = 0; touchStartY = 0; if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) { if (deltaX > 0) handleRelativeTurn('right'); else handleRelativeTurn('left'); event.preventDefault(); } }
+
+
+        // --- Resize Handling ---
         function onWindowResize() {
-            // Only resize if not in fullscreen element mode (browser handles that)
-            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-                const width = gameContainer.clientWidth; const height = gameContainer.clientHeight;
-                camera.aspect = width / height; camera.updateProjectionMatrix();
-                if(renderer) {
-                     const renderPixelRatio = Math.min(window.devicePixelRatio * 1.0, 2);
-                     renderer.setSize(width, height); renderer.setPixelRatio(renderPixelRatio);
-                     console.log(`Resized. New size: ${width}x${height}, Ratio: ${renderPixelRatio}`);
-                 }
-            } else {
-                 // Handle resize *while* in fullscreen (window resize event might still fire)
-                 const width = window.innerWidth; const height = window.innerHeight;
-                 camera.aspect = width / height; camera.updateProjectionMatrix();
-                 if(renderer) {
-                     const renderPixelRatio = Math.min(window.devicePixelRatio * 1.0, 2);
-                     renderer.setSize(width, height); renderer.setPixelRatio(renderPixelRatio);
-                    console.log(`Resized (Fullscreen). New size: ${width}x${height}, Ratio: ${renderPixelRatio}`);
-                 }
-            }
+            // Use window dimensions directly as the container should fill it
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            console.log(`onWindowResize Triggered: ${width}x${height}`);
+
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+
+            if(renderer) {
+                 const renderPixelRatio = Math.min(window.devicePixelRatio * 1.0, 2);
+                 // Resize the renderer to fill the window directly
+                 renderer.setSize(width, height);
+                 renderer.setPixelRatio(renderPixelRatio);
+                 console.log(`Renderer Resized. Size: ${width}x${height}, Ratio: ${renderPixelRatio}`);
+             }
+             // No need to resize gameContainer element itself via JS, CSS handles it.
         }
 
-         function toggleFullScreen() {
-            if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-                 if (gameContainer.requestFullscreen) gameContainer.requestFullscreen();
-                 else if (gameContainer.mozRequestFullScreen) gameContainer.mozRequestFullScreen();
-                 else if (gameContainer.webkitRequestFullscreen) gameContainer.webkitRequestFullscreen();
-                 else if (gameContainer.msRequestFullscreen) gameContainer.msRequestFullscreen();
-                 fullscreenButton.textContent = "Exit Full Screen";
-            } else {
-                 if (document.exitFullscreen) document.exitFullscreen();
-                 else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
-                 else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-                 else if (document.msExitFullscreen) document.msExitFullscreen();
-                 fullscreenButton.textContent = "Full Screen";
-            }
-             // Trigger a resize event shortly after to ensure canvas redraws correctly
-             setTimeout(onWindowResize, 100);
-        }
-
-        // Fullscreen change listener to handle exiting fullscreen with ESC key
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-                fullscreenButton.textContent = "Full Screen";
-                // Trigger resize on exit as well
-                setTimeout(onWindowResize, 100);
-            }
-        });
-        // Prefixed versions for older browsers
-        document.addEventListener('webkitfullscreenchange', () => { if(!document.webkitFullscreenElement) { fullscreenButton.textContent = "Full Screen"; setTimeout(onWindowResize, 100); }});
-        document.addEventListener('mozfullscreenchange', () => { if(!document.mozFullScreenElement) { fullscreenButton.textContent = "Full Screen"; setTimeout(onWindowResize, 100); }});
-        document.addEventListener('MSFullscreenChange', () => { if(!document.msFullscreenElement) { fullscreenButton.textContent = "Full Screen"; setTimeout(onWindowResize, 100); }});
-
+        // --- Fullscreen related functions and listeners REMOVED ---
 
         // --- Start ---
         try {
@@ -930,7 +349,8 @@
         }
         catch (e) {
             console.error("Initialization error:", e);
-            document.body.innerHTML = `<div style="color: red; padding: 20px; font-family: sans-serif; background: #333;">Fatal Error: Failed to initialize game. Check console (F12). <br>Error: ${e.message}<br>${e.stack}</div>`;
+            // More robust error display
+            document.body.innerHTML = `<div style="position: absolute; top:0; left:0; width: 100vw; height: 100vh; background: #333; color: red; padding: 20px; font-family: sans-serif; font-size: 1.2em; overflow-y: auto;">Fatal Error: Failed to initialize game. Check console (F12). <br><br>Error: ${e.message}<br><br>Stack: ${e.stack.replace(/\n/g, '<br>') || 'N/A'}</div>`;
         }
 
     </script>
